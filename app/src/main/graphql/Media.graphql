@@ -1,0 +1,34 @@
+query Media($page: Int, $perPage: Int) {
+    Page(page: $page, perPage: $perPage) {
+        __typename
+        media {
+            __typename
+            id
+            title {
+                english
+                romaji
+            }
+            description
+
+            coverImage {
+                medium
+                large
+            }
+            averageScore
+            studios(isMain: true) {
+                edges {
+                    isMain
+                    node {
+                        name
+                    }
+                }
+            }
+        }
+        pageInfo {
+            hasNextPage
+            currentPage
+            lastPage
+            perPage
+        }
+    }
+}

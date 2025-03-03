@@ -1,0 +1,24 @@
+query MediaDetails($mediaId: Int) {
+    Media(id: $mediaId) {
+        bannerImage
+        averageScore
+        title {
+            english
+            native
+            romaji
+        }
+        description
+        id
+        studios(isMain: true) {
+            edges {
+                isMain
+                node {
+                    name
+                }
+            }
+        }
+        coverImage {
+            large
+        }
+    }
+}
