@@ -20,5 +20,79 @@ query MediaDetails($mediaId: Int) {
         coverImage {
             large
         }
+        meanScore
+        status
+        episodes
+        trends {
+            nodes {
+                episode
+            }
+        }
+        format
+        source
+        season
+        seasonYear
+        startDate {
+            day
+            month
+            year
+        }
+        endDate {
+            day
+            month
+            year
+        }
+        popularity
+        favourites
+        synonyms
+        trailer {
+            id
+            site
+            thumbnail
+        }
+        genres
+        tags {
+            name
+            rank
+        }
+        characters(sort: ROLE) {
+            edges {
+                node {
+                    name {
+                        full
+                    }
+                    id
+                }
+                role
+            }
+        }
+        staff(sort: RELEVANCE) {
+            nodes {
+                name {
+                    full
+                }
+                primaryOccupations
+                id
+            }
+        }
+        recommendations(sort: RATING) {
+            nodes {
+                id
+                media {
+                    id
+                    title {
+                        english
+                        native
+                        romaji
+                    }
+                    episodes
+                    trends {
+                        nodes {
+                            episode
+                        }
+                    }
+                }
+            }
+        }
     }
 }

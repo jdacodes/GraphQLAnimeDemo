@@ -1,9 +1,7 @@
 package com.jdacodes.graphqlanimedemo
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -104,7 +102,26 @@ fun HeaderContentPreview() {
                 description = null,
                 id = 9586,
                 studios = null,
-                coverImage = null
+                coverImage = null,
+                meanScore = null,
+                status = null,
+                episodes = null,
+                trends = null,
+                format = null,
+                source = null,
+                season = null,
+                seasonYear = null,
+                startDate = null,
+                endDate = null,
+                popularity = null,
+                favourites = null,
+                synonyms = null,
+                trailer = null,
+                genres = null,
+                tags = null,
+                characters = null,
+                staff = null,
+                recommendations = null
             )
         ),
         modifier = Modifier.fillMaxWidth()

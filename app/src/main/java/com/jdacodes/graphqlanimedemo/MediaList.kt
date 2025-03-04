@@ -213,8 +213,8 @@ fun MediaItem(
             }
         },
         leadingContent = {
-            val placeholder = if(isSystemInDarkTheme()) {
-                 painterResource(R.drawable.ic_image_placeholder_dark)
+            val placeholder = if (isSystemInDarkTheme()) {
+                painterResource(R.drawable.ic_image_placeholder_dark)
 
             } else {
                 painterResource(R.drawable.ic_image_placeholder)
@@ -228,7 +228,7 @@ fun MediaItem(
                 error = placeholder,
                 contentDescription = "Media image",
 
-            )
+                )
         }
     )
 
