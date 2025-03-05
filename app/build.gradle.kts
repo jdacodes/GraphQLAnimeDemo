@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.apollo.runtime)
     implementation(libs.kotlin.immutable.collections)
     implementation(libs.androidx.adaptive.navigation.android)
+    implementation(libs.android.youtube.player.core)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

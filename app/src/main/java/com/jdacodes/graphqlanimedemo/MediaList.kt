@@ -201,7 +201,7 @@ fun MediaItem(
             Column {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Score: ${media.averageScore}",
+                    text = "Score: ${media.averageScore?.let { "${it.toFloat() / 10f}/10" } ?: ""}",
                     style = MaterialTheme.typography.bodySmall // Example style
                 )
                 if (media.studios?.edges?.mapNotNull { it?.isMain }?.isNotEmpty() == true) {

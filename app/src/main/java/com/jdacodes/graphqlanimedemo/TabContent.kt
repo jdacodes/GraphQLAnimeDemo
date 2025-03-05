@@ -1,15 +1,24 @@
 package com.jdacodes.graphqlanimedemo
 
+import android.app.Activity
+import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -20,14 +29,29 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.jdacodes.graphqlanimedemo.type.MediaFormat
 import com.jdacodes.graphqlanimedemo.type.MediaSource
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.FullscreenListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 import kotlinx.coroutines.launch
 
 @Composable
@@ -393,6 +417,7 @@ fun InfoTabContent(data: MediaDetailsQuery.Data) {
                 }
             }
             item {
+                Spacer(modifier = Modifier.height(16.dp))
                 Column {
                     Text(
                         text = "Synopsis",
@@ -408,10 +433,131 @@ fun InfoTabContent(data: MediaDetailsQuery.Data) {
                     )
                 }
             }
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Synonyms : ",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = data.Media.synonyms?.joinToString(separator = ", ") ?: "",
+                        style = MaterialTheme.typography.bodySmall // Example style
+                    )
+                }
+            }
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Column {
+                    Text(
+                        text = "Trailer",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (data.Media.trailer != null && data.Media.trailer?.id != null) {
+                        MediaTrailer(
+                            videoId = data.Media.trailer.id,
+                            lifeCycleOwner = LocalLifecycleOwner.current
+                        )
+                        Log.d(
+                            "MediaTrailer",
+                            "Trailer loaded for ${data.Media.id} ${data.Media.title}"
+                        )
+                    } else {
+                        Text(
+                            text = "No trailer available",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
 
         }
     }
 }
+
+@Composable
+fun MediaTrailer(
+    videoId: String,
+    lifeCycleOwner: LifecycleOwner
+) {
+    val activity = LocalActivity.current
+    var isFullscreen by remember { mutableStateOf(false) }
+    var fullscreenView: View? by remember { mutableStateOf(null) }
+    var exitFullscreenCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    // Handle fullscreen item
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clip(RoundedCornerShape(16.dp)),
+        factory = { context ->
+            YouTubePlayerView(context = context).apply {
+                lifeCycleOwner.lifecycle.addObserver(this)
+
+                addYouTubePlayerListener(object : AbstractYouTubePlayerListener() {
+                    override fun onReady(youTubePlayer: YouTubePlayer) {
+                        youTubePlayer.loadVideo(videoId, 0f)
+                    }
+
+                })
+
+                addFullscreenListener(object : FullscreenListener {
+                    override fun onEnterFullscreen(
+                        view: View,
+                        exitFullscreen: () -> Unit
+                    ) {
+                        isFullscreen = true
+                        fullscreenView = view
+                        exitFullscreenCallback = exitFullscreen
+                    }
+
+                    override fun onExitFullscreen() {
+                        isFullscreen = false
+                        exitFullscreenCallback = null
+                        fullscreenView = null
+                    }
+
+
+                })
+            }
+        }
+    )
+
+    // Display fullscreen view when requested
+    val decorView = remember(activity) { activity?.window?.decorView as ViewGroup }
+    
+    DisposableEffect(isFullscreen, fullscreenView) {
+        if (isFullscreen && fullscreenView != null) {
+            decorView.addView(
+                fullscreenView,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        } else if (fullscreenView != null) {
+            decorView.removeView(fullscreenView)
+        }
+        onDispose {
+            fullscreenView?.let {
+                decorView.removeView(it)
+            }
+        }
+    }
+
+    // Ensure back button handles fullscreen exit (optional, but recommended)
+    BackHandler(enabled = isFullscreen) {
+        exitFullscreenCallback?.invoke()
+    }
+}
+
 
 private fun MediaFormat.toFormatString(): String = when (this) {
     MediaFormat.TV -> "TV"
