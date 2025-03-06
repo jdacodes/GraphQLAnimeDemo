@@ -4,16 +4,10 @@ package com.jdacodes.graphqlanimedemo
 
 import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,10 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.apollographql.apollo.api.Optional
 import com.apollographql.apollo.exception.ApolloNetworkException
 
@@ -116,49 +106,6 @@ private fun Loading() {
         CircularProgressIndicator()
     }
 }
-
-@Composable
-private fun MediaDetails(
-    data: MediaDetailsQuery.Data,
-    onBack: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        AsyncImage(
-            modifier = Modifier.size(100.dp, 150.dp),
-            model = data.Media?.coverImage?.large,
-            contentScale = ContentScale.Crop,
-            placeholder = painterResource(R.drawable.ic_image_placeholder),
-            error = painterResource(R.drawable.ic_image_placeholder),
-            contentDescription = "Media image"
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            if (data.Media?.title != null) {
-                Text(
-                    text = data.Media.title.english ?: data.Media.title.romaji ?: "",
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.titleMedium  // Example style
-                )
-                Text(
-                    text = data.Media.title.romaji ?: data.Media.title.native ?: "",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-            }
-
-
-        }
-    }
-
-}
-
 
 @Composable
 private fun MediaDetailsScreen(

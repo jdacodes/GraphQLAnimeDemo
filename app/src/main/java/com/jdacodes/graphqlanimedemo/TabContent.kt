@@ -5,14 +5,19 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -41,12 +46,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.text.HtmlCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import coil.compose.AsyncImage
 import com.jdacodes.graphqlanimedemo.type.MediaFormat
 import com.jdacodes.graphqlanimedemo.type.MediaSource
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
@@ -77,8 +85,8 @@ fun TabContent(
 fun Tabs(pagerState: PagerState) {
     val list = listOf(
         "Info" to Icons.Default.Info,
-        "Shopping" to Icons.Default.ShoppingCart,
-        "Settings" to Icons.Default.Settings
+        "Characters" to Icons.Default.ShoppingCart,
+        "Staff" to Icons.Default.Settings
     )
 
     val scope = rememberCoroutineScope()
@@ -501,6 +509,17 @@ fun InfoTabContent(data: MediaDetailsQuery.Data) {
                     MediaTags(data.Media.tags)
                 }
             }
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Column {
+                    Text(
+                        text = "Recommended",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    MediaRecommendation(data.Media.recommendations)
+                }
+            }
         }
     }
 }
@@ -617,10 +636,8 @@ fun MediaGenres(genres: List<String?>?) {
 
 @Composable
 fun MediaTags(tags: List<MediaDetailsQuery.Tag?>?) {
-    var selected by remember { mutableStateOf(false) }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-
             if (tags != null) {
                 repeat(tags.size) { index ->
                     AssistChip(
@@ -633,6 +650,74 @@ fun MediaTags(tags: List<MediaDetailsQuery.Tag?>?) {
             }
         }
     }
+}
+
+@Composable
+fun MediaRecommendation(recommendations: MediaDetailsQuery.Recommendations?) {
+
+    if (recommendations != null) {
+        if (recommendations.nodes != null) {
+            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                recommendations.nodes.forEach { node ->
+                    if (node?.mediaRecommendation != null) {
+                        Column(
+                            modifier = Modifier
+                                .width(100.dp)
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            val placeholder = if (isSystemInDarkTheme()) {
+                                painterResource(R.drawable.ic_image_placeholder_dark)
+
+                            } else {
+                                painterResource(R.drawable.ic_image_placeholder)
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp, 150.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                            ) {
+                                AsyncImage(
+                                    model = node.mediaRecommendation.coverImage?.extraLarge
+                                        ?: node.mediaRecommendation.coverImage?.large ?: "",
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = placeholder,
+                                    error = placeholder,
+                                    contentDescription = "Media image",
+                                )
+
+                                Text(
+                                    text = node.mediaRecommendation.meanScore?.let { "${it.toFloat() / 10f}/10" }
+                                        ?: "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .align(Alignment.BottomEnd)
+                                        .padding(4.dp) // Adjust padding if needed
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = node.mediaRecommendation.title?.romaji
+                                    ?: node.mediaRecommendation.title?.english ?: "Unknown",
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 2,
+                                modifier = Modifier.width(100.dp)
+                            )
+                            Text(
+                                text = "Episodes: ${node.mediaRecommendation.episodes ?: "Unknown"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.width(100.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
 }
 

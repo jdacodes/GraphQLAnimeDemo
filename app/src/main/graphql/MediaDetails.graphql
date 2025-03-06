@@ -78,18 +78,17 @@ query MediaDetails($mediaId: Int) {
         recommendations(sort: RATING) {
             nodes {
                 id
-                media {
-                    id
+                mediaRecommendation {
+                    coverImage {
+                        extraLarge
+                        large
+                    }
+                    meanScore
+                    episodes
                     title {
                         english
                         native
                         romaji
-                    }
-                    episodes
-                    trends {
-                        nodes {
-                            episode
-                        }
                     }
                 }
             }

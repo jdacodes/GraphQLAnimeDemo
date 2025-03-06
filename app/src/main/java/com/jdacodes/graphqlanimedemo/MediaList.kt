@@ -1,6 +1,5 @@
 package com.jdacodes.graphqlanimedemo
 
-import android.os.Parcelable
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -18,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -50,7 +51,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import kotlinx.parcelize.Parcelize
 
 
 @Composable
@@ -200,10 +200,7 @@ fun MediaItem(
 
             Column {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Score: ${media.averageScore?.let { "${it.toFloat() / 10f}/10" } ?: ""}",
-                    style = MaterialTheme.typography.bodySmall // Example style
-                )
+
                 if (media.studios?.edges?.mapNotNull { it?.isMain }?.isNotEmpty() == true) {
                     Text(
                         text = "Studio: ${media.studios.edges.firstOrNull()?.node?.name}",
@@ -219,16 +216,29 @@ fun MediaItem(
             } else {
                 painterResource(R.drawable.ic_image_placeholder)
             }
+            Box(
+                modifier = Modifier
+                    .size(100.dp, 150.dp)
+                    .clip(RoundedCornerShape(8.dp))
+            ) {
+                AsyncImage(
+                    modifier = Modifier.size(100.dp, 150.dp),
+                    model = media.coverImage?.large,
+                    contentScale = ContentScale.Crop,
+                    placeholder = placeholder,
+                    error = placeholder,
+                    contentDescription = "Media image",
 
-            AsyncImage(
-                modifier = Modifier.size(100.dp, 150.dp),
-                model = media.coverImage?.large,
-                contentScale = ContentScale.Crop,
-                placeholder = placeholder,
-                error = placeholder,
-                contentDescription = "Media image",
-
+                    )
+                Text(
+                    text = media.averageScore?.let { "${it.toFloat() / 10f}/10" } ?: "",
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.surface)
+                        .align(Alignment.BottomEnd)
+                        .padding(4.dp), // Adjust padding if needed
+                    style = MaterialTheme.typography.bodySmall // Example style
                 )
+            }
         }
     )
 
