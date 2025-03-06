@@ -1,11 +1,11 @@
 package com.jdacodes.graphqlanimedemo
 
-import android.app.Activity
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,13 +18,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -38,7 +41,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -50,7 +52,6 @@ import com.jdacodes.graphqlanimedemo.type.MediaSource
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.FullscreenListener
-import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 import kotlinx.coroutines.launch
 
@@ -75,7 +76,7 @@ fun TabContent(
 @Composable
 fun Tabs(pagerState: PagerState) {
     val list = listOf(
-        "Home" to Icons.Default.Home,
+        "Info" to Icons.Default.Info,
         "Shopping" to Icons.Default.ShoppingCart,
         "Settings" to Icons.Default.Settings
     )
@@ -460,7 +461,7 @@ fun InfoTabContent(data: MediaDetailsQuery.Data) {
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    if (data.Media.trailer != null && data.Media.trailer?.id != null) {
+                    if (data.Media.trailer?.id != null) {
                         MediaTrailer(
                             videoId = data.Media.trailer.id,
                             lifeCycleOwner = LocalLifecycleOwner.current
@@ -478,7 +479,28 @@ fun InfoTabContent(data: MediaDetailsQuery.Data) {
                     }
                 }
             }
-
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Column {
+                    Text(
+                        text = "Genres",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    MediaGenres(data.Media.genres)
+                }
+            }
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Column {
+                    Text(
+                        text = "Tags",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    MediaTags(data.Media.tags)
+                }
+            }
         }
     }
 }
@@ -534,7 +556,7 @@ fun MediaTrailer(
 
     // Display fullscreen view when requested
     val decorView = remember(activity) { activity?.window?.decorView as ViewGroup }
-    
+
     DisposableEffect(isFullscreen, fullscreenView) {
         if (isFullscreen && fullscreenView != null) {
             decorView.addView(
@@ -556,6 +578,62 @@ fun MediaTrailer(
     BackHandler(enabled = isFullscreen) {
         exitFullscreenCallback?.invoke()
     }
+}
+
+@Composable
+fun MediaGenres(genres: List<String?>?) {
+    if (!genres.isNullOrEmpty()) {
+        Column {
+            genres.chunked(2).forEach { genrePair ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    genrePair.forEach { genre ->
+                        OutlinedButton(
+                            onClick = { /* TODO: Handle button click */ },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 4.dp)
+                        ) {
+                            Text(
+                                text = genre.orEmpty(),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
+                    if (genrePair.size < 2) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+@Composable
+fun MediaTags(tags: List<MediaDetailsQuery.Tag?>?) {
+    var selected by remember { mutableStateOf(false) }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+
+            if (tags != null) {
+                repeat(tags.size) { index ->
+                    AssistChip(
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                        onClick = { /* do something*/ },
+                        label = { Text("${tags[index]?.name ?: ""}: ${tags[index]?.rank ?: ""}%") },
+
+                        )
+                }
+            }
+        }
+    }
+
 }
 
 
