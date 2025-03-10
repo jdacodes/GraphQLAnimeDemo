@@ -62,8 +62,19 @@ query MediaDetails($mediaId: Int) {
                         full
                     }
                     id
+                    image {
+                        large
+                        medium
+                    }
                 }
                 role
+                voiceActorRoles {
+                    voiceActor {
+                        name {
+                            full
+                        }
+                    }
+                }
             }
         }
         staff(sort: RELEVANCE) {
@@ -73,6 +84,10 @@ query MediaDetails($mediaId: Int) {
                 }
                 primaryOccupations
                 id
+                image {
+                    large
+                    medium
+                }
             }
         }
         recommendations(sort: RATING) {

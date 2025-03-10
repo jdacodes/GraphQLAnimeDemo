@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Tab
@@ -46,8 +47,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -55,6 +58,7 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
+import com.jdacodes.graphqlanimedemo.type.CharacterRole
 import com.jdacodes.graphqlanimedemo.type.MediaFormat
 import com.jdacodes.graphqlanimedemo.type.MediaSource
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
@@ -84,9 +88,9 @@ fun TabContent(
 @Composable
 fun Tabs(pagerState: PagerState) {
     val list = listOf(
-        "Info" to Icons.Default.Info,
-        "Characters" to Icons.Default.ShoppingCart,
-        "Staff" to Icons.Default.Settings
+        "Info" to R.drawable.ic_info_tab,
+        "Characters" to R.drawable.ic_character_tab,
+        "Staff" to R.drawable.ic_staff_tab,
     )
 
     val scope = rememberCoroutineScope()
@@ -101,9 +105,11 @@ fun Tabs(pagerState: PagerState) {
             Tab(
                 icon = {
                     Icon(
-                        imageVector = pair.second, contentDescription = null,
-                        tint = if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary else
-                            MaterialTheme.colorScheme.onSurface
+                        painter = painterResource(id = pair.second),  // Changed this line
+                        contentDescription = null,
+                        tint = if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp)
                     )
                 },
                 text = {
@@ -134,8 +140,8 @@ fun TabsContent(
     HorizontalPager(state = pagerState) { page ->
         when (page) {
             0 -> InfoTabContent(data = data)
-            1 -> TabContentScreen(data = "Welcome to Shopping Screen")
-            2 -> TabContentScreen(data = "Welcome to Settings Screen")
+            1 -> CharactersTabContent(data = data)
+            2 -> StaffTabContent(data = data)
         }
     }
 }
@@ -160,6 +166,124 @@ fun TabContentScreen(data: String) {
         }
     }
 }
+
+@Composable
+fun CharactersTabContent(data: MediaDetailsQuery.Data) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        if (!data.Media?.characters?.edges.isNullOrEmpty()) {
+            items(data.Media?.characters?.edges ?: emptyList()) { character ->
+                character?.node?.let { node ->
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                text = node.name?.full ?: "",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        },
+                        supportingContent = {
+                            character.role?.let { role ->
+                                Text(
+                                    text = role.toRoleString(),
+                                    style = MaterialTheme.typography.bodyMedium,
+
+                                    )
+
+                            }
+                        },
+                        leadingContent = {
+                            val placeholder = if (isSystemInDarkTheme()) {
+                                painterResource(R.drawable.ic_image_placeholder_dark)
+
+                            } else {
+                                painterResource(R.drawable.ic_image_placeholder)
+                            }
+
+                            AsyncImage(
+                                modifier = Modifier
+                                    .size(100.dp, 150.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                model = node.image?.large ?: node.image?.medium,
+                                contentScale = ContentScale.Crop,
+                                placeholder = placeholder,
+                                error = placeholder,
+                                contentDescription = "Character image",
+
+                                )
+
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StaffTabContent(data: MediaDetailsQuery.Data) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        if (!data.Media?.staff?.nodes.isNullOrEmpty()) {
+            items(data.Media?.staff?.nodes ?: emptyList()) { staff ->
+                if (staff != null) {
+                    ListItem(
+                        headlineContent = {
+                            staff.name?.let { name ->
+                                Text(
+                                    text = staff.name.full ?: "",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+
+                        },
+                        supportingContent = {
+                            staff.primaryOccupations?.let { occupation ->
+                                Text(
+                                    text = occupation.joinToString(separator = ", ") { it.toString() },
+                                    style = MaterialTheme.typography.bodyMedium,
+
+                                    )
+
+                            }
+                        },
+                        leadingContent = {
+                            val placeholder = if (isSystemInDarkTheme()) {
+                                painterResource(R.drawable.ic_image_placeholder_dark)
+
+                            } else {
+                                painterResource(R.drawable.ic_image_placeholder)
+                            }
+
+                            AsyncImage(
+                                modifier = Modifier
+                                    .size(100.dp, 150.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                model = staff.image?.large ?: staff.image?.medium,
+                                contentScale = ContentScale.Crop,
+                                placeholder = placeholder,
+                                error = placeholder,
+                                contentDescription = "Character image",
+
+                                )
+
+                        }
+                    )
+                }
+
+
+            }
+        }
+    }
+}
+
 
 @Composable
 fun InfoTabContent(data: MediaDetailsQuery.Data) {
@@ -773,4 +897,11 @@ private fun Int.toStringMonth(): String {
             " "
         }
     }
+}
+
+private fun CharacterRole.toRoleString(): String = when (this) {
+    CharacterRole.MAIN -> "Main"
+    CharacterRole.SUPPORTING -> "Supporting"
+    CharacterRole.BACKGROUND -> "Background"
+    else -> "Unknown"
 }
