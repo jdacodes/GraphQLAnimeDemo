@@ -398,10 +398,9 @@ fun InfoTabContent(data: MediaDetailsQuery.Data) {
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    val fullName = data.Media.staff?.nodes
-                        ?.filter { it?.primaryOccupations?.contains("Mangaka") == true }
-                        ?.firstOrNull()
-                        ?.name?.full ?: "Unknown"
+                    val fullName =
+                        data.Media.staff?.nodes?.firstOrNull { it?.primaryOccupations?.contains("Mangaka") == true }
+                            ?.name?.full ?: "Unknown"
                     Text(
                         text = fullName,
                         style = MaterialTheme.typography.bodySmall // Example style
@@ -422,7 +421,11 @@ fun InfoTabContent(data: MediaDetailsQuery.Data) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     val fullSeason =
-                        "${data.Media.season ?: ""} ${data.Media.seasonYear.toString() ?: ""}"
+                        if (data.Media.season != null && data.Media.seasonYear != null){
+                            "${data.Media.season} ${data.Media.seasonYear}"
+                        } else {
+                            "Unknown"
+                        }
                     Text(
                         text = fullSeason,
                         style = MaterialTheme.typography.bodySmall // Example style
@@ -442,10 +445,10 @@ fun InfoTabContent(data: MediaDetailsQuery.Data) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     val fullStartDate =
-                        if (data.Media.startDate != null) {
-                            "${data.Media.startDate.day.toString()} ${data.Media.startDate.month?.toStringMonth() ?: ""} ${data.Media.startDate.year.toString()}"
+                        if (data.Media.startDate != null && data.Media.startDate.month != null && data.Media.startDate.year != null) {
+                            "${data.Media.startDate.day.toString()} ${data.Media.startDate.month.toStringMonth() } ${data.Media.startDate.year}"
                         } else {
-                            ""
+                            "Not yet aired"
                         }
                     Text(
                         text = fullStartDate,
@@ -466,10 +469,10 @@ fun InfoTabContent(data: MediaDetailsQuery.Data) {
                         color = MaterialTheme.colorScheme.primary
                     )
                     val fullEndDate =
-                        if (data.Media.endDate != null) {
-                            "${data.Media.endDate.day.toString() ?: ""} ${data.Media.endDate.month?.toStringMonth() ?: ""} ${data.Media.endDate.year.toString() ?: ""}"
+                        if (data.Media.endDate != null && data.Media.endDate.month != null && data.Media.endDate.year != null) {
+                            "${data.Media.endDate.day.toString() } ${data.Media.endDate.month.toStringMonth() ?: ""} ${data.Media.endDate.year}"
                         } else {
-                            ""
+                            "Ongoing"
                         }
                     Text(
                         text = fullEndDate,

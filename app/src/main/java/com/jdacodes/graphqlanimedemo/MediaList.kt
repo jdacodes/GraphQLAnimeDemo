@@ -69,6 +69,18 @@ import kotlinx.coroutines.launch
 fun MediaList(onMediaClick: (id: Int) -> Unit) {
     var page by remember { mutableIntStateOf(1) }
     var searchText by remember { mutableStateOf("") }
+    val debouncedSearchText by remember(searchText) {
+        derivedStateOf {
+            // Only create a new derived state if the search text is at least 3 characters
+            // or empty (to show all results)
+            if (searchText.isEmpty() || searchText.length >= 3) {
+                searchText
+            } else {
+                // Return previous value or empty if less than minimum characters
+                ""
+            }
+        }
+    }
     val perPage by remember { mutableIntStateOf(10) }
     var hasNextPage by remember { mutableStateOf(true) }
     var mediaList by remember { mutableStateOf(emptyList<MediaQuery.Medium>()) }
@@ -92,7 +104,7 @@ fun MediaList(onMediaClick: (id: Int) -> Unit) {
             if (!isLoading && hasNextPage) {
                 isLoading = true
                 delay(1000)
-                val search = searchText.ifEmpty { null }
+                val search = debouncedSearchText.ifEmpty { null }
                 val response = apolloClient.query(
                     MediaQuery(
                         Optional.present(page),
@@ -116,7 +128,12 @@ fun MediaList(onMediaClick: (id: Int) -> Unit) {
             }
         }
     }
-
+    // Watch for changes in debouncedSearchText
+    LaunchedEffect(debouncedSearchText) {
+        // Reset and load new results when derived search text changes
+        resetPaginationState()
+        loadMoreItems()
+    }
     Scaffold(
         topBar = {
             TopAppBar(
