@@ -1,11 +1,9 @@
 package com.jdacodes.graphqlanimedemo
 
-object NavigationDestinations {
-    const val MEDIA_LIST = "mediaList"
-    const val MEDIA_DETAILS = "mediaList/details"
-    const val LOGIN = "login"
-}
+import kotlinx.serialization.Serializable
 
-object NavigationArguments {
-    const val MEDIA_ID = "id"
+@Serializable
+sealed class Navigation {
+    @Serializable
+    data object MediaList : Navigation()
 }

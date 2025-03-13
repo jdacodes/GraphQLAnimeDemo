@@ -262,8 +262,11 @@ private fun LoadingItem() {
 @Composable
 fun MediaListDetailPaneScaffold() {
     val navigator = rememberListDetailPaneScaffoldNavigator<Int>()
+    val scope = rememberCoroutineScope()
     BackHandler(navigator.canNavigateBack()) {
-        navigator.navigateBack()
+        scope.launch {
+            navigator.navigateBack()
+        }
     }
 
     ListDetailPaneScaffold(
@@ -273,7 +276,9 @@ fun MediaListDetailPaneScaffold() {
             AnimatedPane {
                 MediaList(
                     onMediaClick = { id ->
-                        navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
+                        scope.launch {
+                            navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
+                        }
                     }
                 )
             }
@@ -281,9 +286,11 @@ fun MediaListDetailPaneScaffold() {
         },
         detailPane = {
             AnimatedPane {
-                navigator.currentDestination?.content?.let {
+                navigator.currentDestination?.contentKey?.let {
                     MediaDetails(id = it, onBack = {
-                        navigator.navigateBack()
+                        scope.launch {
+                            navigator.navigateBack()
+                        }
                     })
                 }
             }
