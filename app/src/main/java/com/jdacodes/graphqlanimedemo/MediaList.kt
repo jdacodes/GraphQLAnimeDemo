@@ -18,10 +18,19 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
@@ -41,7 +50,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.apollographql.apollo.api.Optional
@@ -53,9 +64,11 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaList(onMediaClick: (id: Int) -> Unit) {
     var page by remember { mutableIntStateOf(1) }
+    var searchText by remember { mutableStateOf("") }
     val perPage by remember { mutableIntStateOf(10) }
     var hasNextPage by remember { mutableStateOf(true) }
     var mediaList by remember { mutableStateOf(emptyList<MediaQuery.Medium>()) }
@@ -65,15 +78,27 @@ fun MediaList(onMediaClick: (id: Int) -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     // State to track if more items are being loaded
     var isLoading by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     // Function to simulate loading more items (with a delay)
+    fun resetPaginationState() {
+        page = 1
+        hasNextPage = true
+        mediaList = emptyList()
+    }
+
     fun loadMoreItems() {
         coroutineScope.launch {
             if (!isLoading && hasNextPage) {
                 isLoading = true
                 delay(1000)
+                val search = searchText.ifEmpty { null }
                 val response = apolloClient.query(
-                    MediaQuery(Optional.present(page), Optional.present(perPage))
+                    MediaQuery(
+                        Optional.present(page),
+                        Optional.present(perPage),
+                        Optional.present(search)
+                    )
                 ).execute()
 
                 val newMediaItems = response.data?.Page?.media?.filterNotNull().orEmpty()
@@ -92,24 +117,63 @@ fun MediaList(onMediaClick: (id: Int) -> Unit) {
         }
     }
 
-    PaginatedLazyColumn(
-        items = mediaList.toPersistentList(),
-        loadMoreItems = ::loadMoreItems,
-        onClick = onMediaClick,
-        listState = listState,
-        isLoading = isLoading
-    )
-
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                title = {
+                    OutlinedTextField(
+                        value = searchText,
+                        onValueChange = { searchText = it },
+                        placeholder = { Text("Search anime...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp),
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Search,
+                                contentDescription = "Search icon"
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Search
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                // Handle search here
+                                keyboardController?.hide()
+                                resetPaginationState()
+                                loadMoreItems()
+                            }
+                        )
+                    )
+                }
+            )
+        },
+    ) { paddingValues ->
+        PaginatedLazyColumn(
+            modifier = Modifier.padding(paddingValues),
+            items = mediaList.toPersistentList(),
+            loadMoreItems = ::loadMoreItems,
+            onClick = onMediaClick,
+            listState = listState,
+            isLoading = isLoading
+        )
+    }
 }
+
 
 @Composable
 fun PaginatedLazyColumn(
+    modifier: Modifier = Modifier,
     items: PersistentList<MediaQuery.Medium>,  // Using PersistentList for efficient state management
     loadMoreItems: () -> Unit,  // Function to load more items
     listState: LazyListState,  // Track the scroll state of the LazyColumn
     buffer: Int = 2,  // Buffer to load more items when we get near the end
     isLoading: Boolean,  // Track if items are being loaded
-    modifier: Modifier = Modifier,
+
     onClick: (id: Int) -> Unit
 ) {
     // Derived state to determine when to load more items
