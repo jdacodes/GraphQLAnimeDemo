@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GraphQLAnimeDemoTheme {
-                MainNavHost()
+               HomeNavigation()
 
 
             }
@@ -27,8 +27,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainNavHost() {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = Navigation.MediaList) {
-        composable<Navigation.MediaList> {
+    NavHost(navController = navController, startDestination = Navigation.Home.MediaListDetail) {
+        composable<Navigation.Home.MediaListDetail> {
             MediaListDetailPaneScaffold()
         }
     }

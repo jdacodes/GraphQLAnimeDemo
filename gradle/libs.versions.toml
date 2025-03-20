@@ -6,8 +6,8 @@ junit = "5.0-SNAPSHOT"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.7"
-activityCompose = "1.10.0"
-composeBom = "2025.02.00"
+activityCompose = "1.10.1"
+composeBom = "2025.03.00"
 navigationCompose = "2.8.9"
 coil = "2.7.0"
 apollo = "4.1.0"
@@ -16,6 +16,7 @@ parcelize = "2.1.20-RC"
 adaptiveNavigationAndroid = "1.1.0"
 youtubePlayer = "12.1.1"
 kotlinSerialization = "1.8.0"
+material3AdaptiveNavigationSuite = "1.3.1"
 
 
 [libraries]
@@ -40,7 +41,7 @@ kotlin-immutable-collections = { group = "org.jetbrains.kotlinx", name = "kotlin
 androidx-adaptive-navigation-android = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation-android", version.ref = "adaptiveNavigationAndroid" }
 android-youtube-player-core = { group = "com.pierfrancescosoffritti.androidyoutubeplayer", name = "core", version.ref = "youtubePlayer" }
 kotlin-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinSerialization" }
-
+androidx-compose-material3-adaptive-navigation-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite", version.ref = "material3AdaptiveNavigationSuite" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
