@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.jdacodes.graphqlanimedemo.favorite.FavoriteRoot
 
 @Composable
 fun HomeNavigation() {
@@ -51,7 +52,7 @@ fun HomeNavigation() {
                 NavHost(navController, startDestination = currentScreen ?: Navigation.Home.MediaListDetail) {
                     composable<Navigation.Home.Dashboard> { DashboardScreen() }
                     composable<Navigation.Home.MediaListDetail> { MediaListDetailPaneScaffold() }
-                    composable<Navigation.Home.Favorites> { FavoritesScreen() }
+                    composable<Navigation.Home.Favorites> { FavoriteRoot() }
                 }
 
         }
@@ -72,16 +73,4 @@ fun DashboardScreen() {
     }
 }
 
-@Composable
-fun FavoritesScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Favorites Screen",
-            modifier = Modifier.align(Alignment.Center)
-        )
-    }
-}
+
