@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.jdacodes.graphqlanimedemo
+package com.jdacodes.graphqlanimedemo.media.presentation
 
 import android.util.Log
 import androidx.compose.foundation.background
@@ -20,25 +20,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.apollographql.apollo.api.Optional
-import com.apollographql.apollo.exception.ApolloNetworkException
-
-private sealed interface MediaDetailsState {
-    object Loading : MediaDetailsState
-    data class Error(val message: String) : MediaDetailsState
-    data class Success(val data: MediaDetailsQuery.Data) : MediaDetailsState
-}
+import com.jdacodes.graphqlanimedemo.media.presentation.composable.CollapsedHeaderContent
+import com.jdacodes.graphqlanimedemo.media.presentation.composable.CollapsingLayout
+import com.jdacodes.graphqlanimedemo.MediaDetailsQuery
+import com.jdacodes.graphqlanimedemo.media.presentation.composable.TabContent
 
 @Composable
 fun MediaDetails(
     id: Int,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    detailState: MediaDetailState,
+    onAction: (MediaAction) -> Unit,
 ) {
     Log.d("MEDIA_DETAILS", "Entered with ID: $id")  // BEFORE null check
     if (id == 0) {
@@ -46,40 +40,16 @@ fun MediaDetails(
         return
     }
 
-    var state by remember { mutableStateOf<MediaDetailsState>(MediaDetailsState.Loading) }
     LaunchedEffect(id) {  // Track ID changes
         Log.d("MediaDetailsDebug", "Received ID: $id (type: ${id::class.java.simpleName})")
         Log.d("QueryDebug", "Executing query with mediaId: $id")
-        val response = apolloClient.query(
-            MediaDetailsQuery(mediaId = Optional.present(id))
-        ).execute()
-        Log.d("QueryDebug", "Received response: ${response.data}")
         Log.d("MEDIA_QUERY", "Querying with ID: $id")
-        state = when {
-            response.errors.orEmpty().isNotEmpty() -> {
-                MediaDetailsState.Error(response.errors!!.first().message)
-            }
-
-            response.exception is ApolloNetworkException -> {
-                MediaDetailsState.Error("Please check your network connectivity.")
-            }
-
-            response.data != null -> {
-                MediaDetailsState.Success(response.data!!)
-            }
-
-            else -> {
-                MediaDetailsState.Error("Oh no... An error happened.")
-            }
-        }
-        Log.d("Fetch error", response.exception.toString())
-        Log.d("Request error", response.errors.toString() + response.data.toString())
-        Log.d("Field error", response.errors.toString() + response.data.toString())
     }
-    when (val s = state) {
-        MediaDetailsState.Loading -> Loading()
-        is MediaDetailsState.Error -> ErrorMessage(s.message)
-        is MediaDetailsState.Success -> MediaDetailsScreen(s.data, onBack)
+
+    when (val s = detailState.uiState) {
+        MediaDetailsUiState.Loading -> Loading()
+        is MediaDetailsUiState.Error -> ErrorMessage(s.message)
+        is MediaDetailsUiState.Success -> MediaDetailsScreen(s.media, onBack)
     }
 }
 
@@ -109,7 +79,7 @@ private fun Loading() {
 
 @Composable
 private fun MediaDetailsScreen(
-    data: MediaDetailsQuery.Data,
+    media: MediaDetailsQuery.Media,
     onBack: () -> Unit
 ) {
     Scaffold(
@@ -117,7 +87,7 @@ private fun MediaDetailsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = data.Media?.title?.english ?: data.Media?.title?.romaji ?: ""
+                        text = media.title?.english ?: media.title?.romaji ?: ""
                     )
                 },
                 navigationIcon = {
@@ -138,10 +108,10 @@ private fun MediaDetailsScreen(
                 .fillMaxWidth()
                 .padding(paddingValues),
             collapsingTop = {
-                CollapsedHeaderContent(data = data)
+                CollapsedHeaderContent(media = media)
             },
             bodyContent = {
-                TabContent(data = data)
+                TabContent(media = media)
             }
         )
 

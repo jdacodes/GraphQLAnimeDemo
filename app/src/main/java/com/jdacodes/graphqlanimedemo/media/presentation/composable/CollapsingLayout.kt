@@ -1,4 +1,4 @@
-package com.jdacodes.graphqlanimedemo
+package com.jdacodes.graphqlanimedemo.media.presentation.composable
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope

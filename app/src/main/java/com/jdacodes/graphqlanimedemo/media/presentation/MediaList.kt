@@ -1,4 +1,4 @@
-package com.jdacodes.graphqlanimedemo
+package com.jdacodes.graphqlanimedemo.media.presentation
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -40,11 +40,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,11 +51,12 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.apollographql.apollo.api.Optional
+import com.jdacodes.graphqlanimedemo.MediaQuery
+import com.jdacodes.graphqlanimedemo.R
 import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.toPersistentList
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -66,82 +64,24 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MediaList(onMediaClick: (id: Int) -> Unit) {
-    var page by remember { mutableIntStateOf(1) }
-    var searchText by remember { mutableStateOf("") }
-    val debouncedSearchText by remember(searchText) {
-        derivedStateOf {
-            // Only create a new derived state if the search text is at least 3 characters
-            // or empty (to show all results)
-            if (searchText.isEmpty() || searchText.length >= 3) {
-                searchText
-            } else {
-                // Return previous value or empty if less than minimum characters
-                ""
-            }
-        }
-    }
-    val perPage by remember { mutableIntStateOf(10) }
-    var hasNextPage by remember { mutableStateOf(true) }
-    var mediaList by remember { mutableStateOf(emptyList<MediaQuery.Medium>()) }
+fun MediaList(
+    listState: MediaListState,
+    onAction: (MediaAction) -> Unit,
+) {
+
     // State to track the scroll position
-    val listState = rememberLazyListState()
-    // Coroutine scope for handling background operations like loading data
-    val coroutineScope = rememberCoroutineScope()
-    // State to track if more items are being loaded
-    var isLoading by remember { mutableStateOf(false) }
+    val listStateLazy = rememberLazyListState()
+
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // Function to simulate loading more items (with a delay)
-    fun resetPaginationState() {
-        page = 1
-        hasNextPage = true
-        mediaList = emptyList()
-    }
-
-    fun loadMoreItems() {
-        coroutineScope.launch {
-            if (!isLoading && hasNextPage) {
-                isLoading = true
-                delay(1000)
-                val search = debouncedSearchText.ifEmpty { null }
-                val response = apolloClient.query(
-                    MediaQuery(
-                        Optional.present(page),
-                        Optional.present(perPage),
-                        Optional.present(search)
-                    )
-                ).execute()
-
-                val newMediaItems = response.data?.Page?.media?.filterNotNull().orEmpty()
-                val currentPageInfo = response.data?.Page?.pageInfo
-
-                // Append new items, avoiding duplicates
-                mediaList = (mediaList + newMediaItems).distinctBy { it.id }
-
-                // Update paging info
-                hasNextPage = currentPageInfo?.hasNextPage ?: false
-                page = currentPageInfo?.currentPage?.plus(1) ?: page
-
-                Log.d("MediaList", "Fetched page: $page, hasNextPage: $hasNextPage")
-                isLoading = false
-            }
-        }
-    }
-    // Watch for changes in debouncedSearchText
-    LaunchedEffect(debouncedSearchText) {
-        // Reset and load new results when derived search text changes
-        resetPaginationState()
-        loadMoreItems()
-    }
     Scaffold(
         topBar = {
             TopAppBar(
                 modifier = Modifier.padding(horizontal = 8.dp),
                 title = {
                     OutlinedTextField(
-                        value = searchText,
-                        onValueChange = { searchText = it },
+                        value = listState.searchText,
+                        onValueChange = { onAction(MediaAction.SearchTextChanged(it)) },
                         placeholder = { Text("Search anime...") },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -161,8 +101,7 @@ fun MediaList(onMediaClick: (id: Int) -> Unit) {
                             onSearch = {
                                 // Handle search here
                                 keyboardController?.hide()
-                                resetPaginationState()
-                                loadMoreItems()
+                                onAction(MediaAction.ResetSearch)
                             }
                         )
                     )
@@ -172,11 +111,11 @@ fun MediaList(onMediaClick: (id: Int) -> Unit) {
     ) { paddingValues ->
         PaginatedLazyColumn(
             modifier = Modifier.padding(paddingValues),
-            items = mediaList.toPersistentList(),
-            loadMoreItems = ::loadMoreItems,
-            onClick = onMediaClick,
-            listState = listState,
-            isLoading = isLoading
+            items = listState.items,
+            loadMoreItems = { onAction(MediaAction.LoadMoreItems) },
+            listState = listStateLazy,
+            isLoading = listState.isLoading,
+            onAction = onAction
         )
     }
 }
@@ -189,9 +128,9 @@ fun PaginatedLazyColumn(
     loadMoreItems: () -> Unit,  // Function to load more items
     listState: LazyListState,  // Track the scroll state of the LazyColumn
     buffer: Int = 2,  // Buffer to load more items when we get near the end
-    isLoading: Boolean,  // Track if items are being loaded
+    isLoading: Boolean, // Track if items are being loaded
+    onAction: (MediaAction) -> Unit
 
-    onClick: (id: Int) -> Unit
 ) {
     // Derived state to determine when to load more items
     val shouldLoadMore = remember {
@@ -227,7 +166,7 @@ fun PaginatedLazyColumn(
         itemsIndexed(items, key = { _, item -> item.id }) { _, media ->
             MediaItem(
                 media = media,
-                onClick = { onClick(media.id) }  // Simplified click handler
+                onAction = onAction  // Simplified click handler
             )
         }
 
@@ -248,7 +187,8 @@ fun PaginatedLazyColumn(
 @Composable
 fun MediaItem(
     media: MediaQuery.Medium,
-    onClick: (id: Int) -> Unit
+    onAction: (MediaAction) -> Unit
+
 ) {
     ListItem(
         modifier = Modifier.clickable {
@@ -256,7 +196,8 @@ fun MediaItem(
                 "MEDIA_CLICK",
                 "ID: ${media.id}, Title: ${media.title?.english ?: media.title?.romaji}"
             )
-            onClick(media.id)
+            onAction(MediaAction.MediaClicked(media.id))
+//            onAction(MediaAction.NavigateToDetail(media.id))
         },
         headlineContent = {
             if (media.title != null) {
@@ -341,12 +282,20 @@ private fun LoadingItem() {
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun MediaListDetailPaneScaffold() {
+fun MediaListDetailRoot(viewModel: MediaViewModel = viewModel()) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val navigator = rememberListDetailPaneScaffoldNavigator<Int>()
     val scope = rememberCoroutineScope()
+
     BackHandler(navigator.canNavigateBack()) {
         scope.launch {
             navigator.navigateBack()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.navigationChannel.collect { mediaId ->
+            navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, mediaId)
         }
     }
 
@@ -356,11 +305,8 @@ fun MediaListDetailPaneScaffold() {
         listPane = {
             AnimatedPane {
                 MediaList(
-                    onMediaClick = { id ->
-                        scope.launch {
-                            navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
-                        }
-                    }
+                    listState = state.listState,
+                    onAction = viewModel::onAction
                 )
             }
 
@@ -368,11 +314,15 @@ fun MediaListDetailPaneScaffold() {
         detailPane = {
             AnimatedPane {
                 navigator.currentDestination?.contentKey?.let {
-                    MediaDetails(id = it, onBack = {
-                        scope.launch {
-                            navigator.navigateBack()
-                        }
-                    })
+                    MediaDetails(
+                        id = it,
+                        detailState = state.detailState,
+                        onAction = viewModel::onAction,
+                        onBack = {
+                            scope.launch {
+                                navigator.navigateBack()
+                            }
+                        })
                 }
             }
 

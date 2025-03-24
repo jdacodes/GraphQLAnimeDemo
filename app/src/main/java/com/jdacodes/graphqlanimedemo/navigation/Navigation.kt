@@ -1,4 +1,4 @@
-package com.jdacodes.graphqlanimedemo
+package com.jdacodes.graphqlanimedemo.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite

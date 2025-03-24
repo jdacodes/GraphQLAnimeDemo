@@ -1,4 +1,4 @@
-package com.jdacodes.graphqlanimedemo
+package com.jdacodes.graphqlanimedemo.media.presentation.composable
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,94 +26,95 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.jdacodes.graphqlanimedemo.MediaDetailsQuery
+import com.jdacodes.graphqlanimedemo.R
 
 @Composable
 internal fun CollapsedHeaderContent(
-    data: MediaDetailsQuery.Data,
+    media: MediaDetailsQuery.Media,
     modifier: Modifier = Modifier,
 ) {
-    if (data.Media != null) {
-        Box(
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(250.dp),
+    ) {
+        AsyncImage(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(250.dp),
+            model = media.bannerImage,
+            contentScale = ContentScale.FillBounds,
+            colorFilter = ColorFilter.tint(
+                Color.Black.copy(alpha = 0.6f),
+                BlendMode.SrcAtop
+            ),
+            placeholder = painterResource(R.drawable.ic_image_placeholder),
+            error = painterResource(R.drawable.ic_image_placeholder),
+            contentDescription = "Media image"
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .align(
+                    Alignment.Center
+                )
         ) {
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
             AsyncImage(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp),
-                model = data.Media.bannerImage,
-                contentScale = ContentScale.FillBounds,
-                colorFilter = ColorFilter.tint(
-                    Color.Black.copy(alpha = 0.6f),
-                    BlendMode.SrcAtop
-                ),
+                    .size(100.dp, 150.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .align(Alignment.CenterHorizontally),
+                model = media.coverImage?.large,
+                contentScale = ContentScale.Crop,
                 placeholder = painterResource(R.drawable.ic_image_placeholder),
                 error = painterResource(R.drawable.ic_image_placeholder),
                 contentDescription = "Media image"
             )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .align(
-                        Alignment.Center
-                    )
-            ) {
-                Spacer(
-                    modifier = Modifier.height(16.dp)
-                )
-                AsyncImage(
-                    modifier = Modifier
-                        .size(100.dp, 150.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .align(Alignment.CenterHorizontally),
-                    model = data.Media.coverImage?.large,
-                    contentScale = ContentScale.Crop,
-                    placeholder = painterResource(R.drawable.ic_image_placeholder),
-                    error = painterResource(R.drawable.ic_image_placeholder),
-                    contentDescription = "Media image"
-                )
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
-                Text(
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    text = data.Media.title?.english ?: data.Media.title?.romaji ?: "",
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    softWrap = true,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(
-                    modifier = Modifier.height(4.dp)
-                )
-                Text(
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    text = data.Media.title?.romaji ?: data.Media.title?.native ?: "",
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    softWrap = true,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+            Text(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                text = media.title?.english ?: media.title?.romaji ?: "",
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = true,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
+            Text(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                text = media.title?.romaji ?: media.title?.native ?: "",
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = true,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium
+            )
 
 
-            }
         }
     }
+
 }
 
 @Preview(showBackground = true, device = Devices.PIXEL)
 @Composable
 fun HeaderContentPreview() {
     CollapsedHeaderContent(
-        data = MediaDetailsQuery.Data(
+        media =
             MediaDetailsQuery.Media(
                 bannerImage = null,
                 averageScore = null,
@@ -141,8 +142,8 @@ fun HeaderContentPreview() {
                 characters = null,
                 staff = null,
                 recommendations = null
-            )
-        ),
+
+            ),
         modifier = Modifier.fillMaxWidth()
     )
 }

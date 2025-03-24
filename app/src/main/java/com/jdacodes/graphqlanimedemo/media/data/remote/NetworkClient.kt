@@ -1,4 +1,4 @@
-package com.jdacodes.graphqlanimedemo
+package com.jdacodes.graphqlanimedemo.media.data.remote
 
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.network.okHttpClient

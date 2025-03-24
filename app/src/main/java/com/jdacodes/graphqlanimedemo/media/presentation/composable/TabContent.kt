@@ -1,4 +1,4 @@
-package com.jdacodes.graphqlanimedemo
+package com.jdacodes.graphqlanimedemo.media.presentation.composable
 
 import android.util.Log
 import android.view.View
@@ -25,10 +25,6 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -47,10 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -58,6 +52,8 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
+import com.jdacodes.graphqlanimedemo.MediaDetailsQuery
+import com.jdacodes.graphqlanimedemo.R
 import com.jdacodes.graphqlanimedemo.type.CharacterRole
 import com.jdacodes.graphqlanimedemo.type.MediaFormat
 import com.jdacodes.graphqlanimedemo.type.MediaSource
@@ -69,7 +65,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun TabContent(
-    data: MediaDetailsQuery.Data,
+    media: MediaDetailsQuery.Media,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState { 3 }
@@ -79,7 +75,7 @@ fun TabContent(
     ) {
         Tabs(pagerState = pagerState)
         TabsContent(
-            data = data,
+            media = media,
             pagerState = pagerState
         )
     }
@@ -135,13 +131,13 @@ fun Tabs(pagerState: PagerState) {
 @Composable
 fun TabsContent(
     pagerState: PagerState,
-    data: MediaDetailsQuery.Data
+    media: MediaDetailsQuery.Media
 ) {
     HorizontalPager(state = pagerState) { page ->
         when (page) {
-            0 -> InfoTabContent(data = data)
-            1 -> CharactersTabContent(data = data)
-            2 -> StaffTabContent(data = data)
+            0 -> InfoTabContent(media = media)
+            1 -> CharactersTabContent(media = media)
+            2 -> StaffTabContent(media = media)
         }
     }
 }
@@ -168,14 +164,14 @@ fun TabContentScreen(data: String) {
 }
 
 @Composable
-fun CharactersTabContent(data: MediaDetailsQuery.Data) {
+fun CharactersTabContent(media: MediaDetailsQuery.Media) {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        if (!data.Media?.characters?.edges.isNullOrEmpty()) {
-            items(data.Media?.characters?.edges ?: emptyList()) { character ->
+        if (!media.characters?.edges.isNullOrEmpty()) {
+            items(media.characters?.edges ?: emptyList()) { character ->
                 character?.node?.let { node ->
                     ListItem(
                         headlineContent = {
@@ -224,14 +220,14 @@ fun CharactersTabContent(data: MediaDetailsQuery.Data) {
 }
 
 @Composable
-fun StaffTabContent(data: MediaDetailsQuery.Data) {
+fun StaffTabContent(media: MediaDetailsQuery.Media) {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        if (!data.Media?.staff?.nodes.isNullOrEmpty()) {
-            items(data.Media?.staff?.nodes ?: emptyList()) { staff ->
+        if (!media.staff?.nodes.isNullOrEmpty()) {
+            items(media.staff?.nodes ?: emptyList()) { staff ->
                 if (staff != null) {
                     ListItem(
                         headlineContent = {
@@ -286,366 +282,364 @@ fun StaffTabContent(data: MediaDetailsQuery.Data) {
 
 
 @Composable
-fun InfoTabContent(data: MediaDetailsQuery.Data) {
+fun InfoTabContent(media: MediaDetailsQuery.Media) {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        if (data.Media != null) {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Mean score: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = data.Media.meanScore?.let { "${it.toFloat() / 10f}/10" } ?: "",
-                        style = MaterialTheme.typography.bodyMedium  // Example style
-                    )
-                }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Mean score: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = media.meanScore?.let { "${it.toFloat() / 10f}/10" } ?: "",
+                    style = MaterialTheme.typography.bodyMedium  // Example style
+                )
             }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Total episodes: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = data.Media.episodes?.toString() ?: "Unknown",
-                        style = MaterialTheme.typography.bodyMedium  // Example style
-                    )
-                }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Total episodes: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = media.episodes?.toString() ?: "Unknown",
+                    style = MaterialTheme.typography.bodyMedium  // Example style
+                )
             }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Format: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = data.Media.format?.toFormatString() ?: "Unknown",
-                        style = MaterialTheme.typography.bodyMedium  // Example style
-                    )
-                }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Format: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = media.format?.toFormatString() ?: "Unknown",
+                    style = MaterialTheme.typography.bodyMedium  // Example style
+                )
             }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Source: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = data.Media.source?.toSourceString() ?: "Unknown",
-                        style = MaterialTheme.typography.bodyMedium  // Example style
-                    )
-                }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Source: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = media.source?.toSourceString() ?: "Unknown",
+                    style = MaterialTheme.typography.bodyMedium  // Example style
+                )
             }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Studio: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (media.studios?.edges?.mapNotNull { it?.isMain }
+                        ?.isNotEmpty() == true) {
                     Text(
-                        text = "Studio: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    if (data.Media.studios?.edges?.mapNotNull { it?.isMain }
-                            ?.isNotEmpty() == true) {
-                        Text(
-                            text = data.Media.studios.edges.firstOrNull()?.node?.name ?: "Unknown",
-                            style = MaterialTheme.typography.bodySmall // Example style
-                        )
-                    }
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Author: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    val fullName =
-                        data.Media.staff?.nodes?.firstOrNull { it?.primaryOccupations?.contains("Mangaka") == true }
-                            ?.name?.full ?: "Unknown"
-                    Text(
-                        text = fullName,
+                        text = media.studios.edges.firstOrNull()?.node?.name ?: "Unknown",
                         style = MaterialTheme.typography.bodySmall // Example style
                     )
+                }
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Author: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                val fullName =
+                    media.staff?.nodes?.firstOrNull { it?.primaryOccupations?.contains("Mangaka") == true }
+                        ?.name?.full ?: "Unknown"
+                Text(
+                    text = fullName,
+                    style = MaterialTheme.typography.bodySmall // Example style
+                )
 
-                }
             }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Season: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    val fullSeason =
-                        if (data.Media.season != null && data.Media.seasonYear != null){
-                            "${data.Media.season} ${data.Media.seasonYear}"
-                        } else {
-                            "Unknown"
-                        }
-                    Text(
-                        text = fullSeason,
-                        style = MaterialTheme.typography.bodySmall // Example style
-                    )
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Start date: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    val fullStartDate =
-                        if (data.Media.startDate != null && data.Media.startDate.month != null && data.Media.startDate.year != null) {
-                            "${data.Media.startDate.day.toString()} ${data.Media.startDate.month.toStringMonth() } ${data.Media.startDate.year}"
-                        } else {
-                            "Not yet aired"
-                        }
-                    Text(
-                        text = fullStartDate,
-                        style = MaterialTheme.typography.bodySmall // Example style
-                    )
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "End date: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    val fullEndDate =
-                        if (data.Media.endDate != null && data.Media.endDate.month != null && data.Media.endDate.year != null) {
-                            "${data.Media.endDate.day.toString() } ${data.Media.endDate.month.toStringMonth() ?: ""} ${data.Media.endDate.year}"
-                        } else {
-                            "Ongoing"
-                        }
-                    Text(
-                        text = fullEndDate,
-                        style = MaterialTheme.typography.bodySmall // Example style
-                    )
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Popularity: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = data.Media.popularity.toString() ?: "",
-                        style = MaterialTheme.typography.bodySmall // Example style
-                    )
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Favourites: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = data.Media.favourites.toString() ?: "",
-                        style = MaterialTheme.typography.bodySmall // Example style
-                    )
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Name romaji: ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = data.Media.title?.romaji ?: "",
-                        style = MaterialTheme.typography.bodySmall // Example style
-                    )
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Name : ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = data.Media.title?.native ?: "",
-                        style = MaterialTheme.typography.bodySmall // Example style
-                    )
-                }
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Column {
-                    Text(
-                        text = "Synopsis",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = HtmlCompat.fromHtml(
-                            data.Media.description ?: "",
-                            HtmlCompat.FROM_HTML_MODE_LEGACY
-                        ).toString(),
-                        style = MaterialTheme.typography.bodyMedium  // Example style
-                    )
-                }
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Synonyms : ",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = data.Media.synonyms?.joinToString(separator = ", ") ?: "",
-                        style = MaterialTheme.typography.bodySmall // Example style
-                    )
-                }
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Column {
-                    Text(
-                        text = "Trailer",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    if (data.Media.trailer?.id != null) {
-                        MediaTrailer(
-                            videoId = data.Media.trailer.id,
-                            lifeCycleOwner = LocalLifecycleOwner.current
-                        )
-                        Log.d(
-                            "MediaTrailer",
-                            "Trailer loaded for ${data.Media.id} ${data.Media.title}"
-                        )
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Season: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                val fullSeason =
+                    if (media.season != null && media.seasonYear != null) {
+                        "${media.season} ${media.seasonYear}"
                     } else {
-                        Text(
-                            text = "No trailer available",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        "Unknown"
                     }
+                Text(
+                    text = fullSeason,
+                    style = MaterialTheme.typography.bodySmall // Example style
+                )
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Start date: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                val fullStartDate =
+                    if (media.startDate != null && media.startDate.month != null && media.startDate.year != null) {
+                        "${media.startDate.day.toString()} ${media.startDate.month.toStringMonth()} ${media.startDate.year}"
+                    } else {
+                        "Not yet aired"
+                    }
+                Text(
+                    text = fullStartDate,
+                    style = MaterialTheme.typography.bodySmall // Example style
+                )
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "End date: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                val fullEndDate =
+                    if (media.endDate != null && media.endDate.month != null && media.endDate.year != null) {
+                        "${media.endDate.day.toString()} ${media.endDate.month.toStringMonth() ?: ""} ${media.endDate.year}"
+                    } else {
+                        "Ongoing"
+                    }
+                Text(
+                    text = fullEndDate,
+                    style = MaterialTheme.typography.bodySmall // Example style
+                )
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Popularity: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = media.popularity.toString() ?: "",
+                    style = MaterialTheme.typography.bodySmall // Example style
+                )
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Favourites: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = media.favourites.toString() ?: "",
+                    style = MaterialTheme.typography.bodySmall // Example style
+                )
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Name romaji: ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = media.title?.romaji ?: "",
+                    style = MaterialTheme.typography.bodySmall // Example style
+                )
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Name : ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = media.title?.native ?: "",
+                    style = MaterialTheme.typography.bodySmall // Example style
+                )
+            }
+        }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Column {
+                Text(
+                    text = "Synopsis",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = HtmlCompat.fromHtml(
+                        media.description ?: "",
+                        HtmlCompat.FROM_HTML_MODE_LEGACY
+                    ).toString(),
+                    style = MaterialTheme.typography.bodyMedium  // Example style
+                )
+            }
+        }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Synonyms : ",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = media.synonyms?.joinToString(separator = ", ") ?: "",
+                    style = MaterialTheme.typography.bodySmall // Example style
+                )
+            }
+        }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Column {
+                Text(
+                    text = "Trailer",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (media.trailer?.id != null) {
+                    MediaTrailer(
+                        videoId = media.trailer.id,
+                        lifeCycleOwner = LocalLifecycleOwner.current
+                    )
+                    Log.d(
+                        "MediaTrailer",
+                        "Trailer loaded for ${media.id} ${media.title}"
+                    )
+                } else {
+                    Text(
+                        text = "No trailer available",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Column {
-                    Text(
-                        text = "Genres",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    MediaGenres(data.Media.genres)
-                }
+        }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Column {
+                Text(
+                    text = "Genres",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                MediaGenres(media.genres)
             }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Column {
-                    Text(
-                        text = "Tags",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    MediaTags(data.Media.tags)
-                }
+        }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Column {
+                Text(
+                    text = "Tags",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                MediaTags(media.tags)
             }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Column {
-                    Text(
-                        text = "Recommended",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    MediaRecommendation(data.Media.recommendations)
-                }
+        }
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Column {
+                Text(
+                    text = "Recommended",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                MediaRecommendation(media.recommendations)
             }
         }
     }

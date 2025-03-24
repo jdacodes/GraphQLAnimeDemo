@@ -1,4 +1,4 @@
-package com.jdacodes.graphqlanimedemo
+package com.jdacodes.graphqlanimedemo.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,6 +8,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -16,24 +20,36 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.jdacodes.graphqlanimedemo.favorite.FavoriteRoot
+import com.jdacodes.graphqlanimedemo.media.presentation.MediaListDetailRoot
 
 @Composable
 fun HomeNavigation() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentScreen = backStackEntry?.destination?.let {
-        when (it.route) {
-            Navigation.Home.MediaListDetail.route -> Navigation.Home.MediaListDetail
-            Navigation.Home.Dashboard.route -> Navigation.Home.Dashboard
-            Navigation.Home.Favorites.route -> Navigation.Home.Favorites
+    
+    // Save the route string instead of the Navigation object
+    var currentRoute by rememberSaveable { 
+        mutableStateOf(Navigation.Home.MediaListDetail.route)
+    }
+    
+    // Convert the route string to Navigation object
+    val currentScreen = when (currentRoute) {
+        Navigation.Home.MediaListDetail.route -> Navigation.Home.MediaListDetail
+        Navigation.Home.Dashboard.route -> Navigation.Home.Dashboard
+        Navigation.Home.Favorites.route -> Navigation.Home.Favorites
+        else -> Navigation.Home.MediaListDetail
+    }
 
-            else ->  Navigation.Home.MediaListDetail
+    // Update currentRoute when navigation changes
+    LaunchedEffect(backStackEntry?.destination?.route) {
+        backStackEntry?.destination?.route?.let {
+            currentRoute = it
         }
     }
+    
     NavigationSuiteScaffold(
         navigationSuiteItems = {
             homeNavigationItems().forEach { (screen, icon) ->
-
                 item(
                     icon = { Icon(icon, contentDescription = screen.route) },
                     label = { Text(screen.route.replace("_", " ").replaceFirstChar { it.uppercase() }) },
@@ -51,14 +67,14 @@ fun HomeNavigation() {
         content = {
                 NavHost(navController, startDestination = currentScreen ?: Navigation.Home.MediaListDetail) {
                     composable<Navigation.Home.Dashboard> { DashboardScreen() }
-                    composable<Navigation.Home.MediaListDetail> { MediaListDetailPaneScaffold() }
+                    composable<Navigation.Home.MediaListDetail> { MediaListDetailRoot() }
                     composable<Navigation.Home.Favorites> { FavoriteRoot() }
                 }
 
         }
     )
 }
-
+//Placeholder screen
 @Composable
 fun DashboardScreen() {
     Box(
