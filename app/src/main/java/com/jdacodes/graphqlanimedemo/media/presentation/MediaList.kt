@@ -51,11 +51,11 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.jdacodes.graphqlanimedemo.MediaQuery
 import com.jdacodes.graphqlanimedemo.R
+import com.jdacodes.graphqlanimedemo.media.domain.model.MediaListItem
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -124,7 +124,7 @@ fun MediaList(
 @Composable
 fun PaginatedLazyColumn(
     modifier: Modifier = Modifier,
-    items: PersistentList<MediaQuery.Medium>,  // Using PersistentList for efficient state management
+    items: PersistentList<MediaListItem>,  // Using PersistentList for efficient state management
     loadMoreItems: () -> Unit,  // Function to load more items
     listState: LazyListState,  // Track the scroll state of the LazyColumn
     buffer: Int = 2,  // Buffer to load more items when we get near the end
@@ -186,7 +186,7 @@ fun PaginatedLazyColumn(
 
 @Composable
 fun MediaItem(
-    media: MediaQuery.Medium,
+    media: MediaListItem,
     onAction: (MediaAction) -> Unit
 
 ) {
@@ -194,23 +194,23 @@ fun MediaItem(
         modifier = Modifier.clickable {
             Log.d(
                 "MEDIA_CLICK",
-                "ID: ${media.id}, Title: ${media.title?.english ?: media.title?.romaji}"
+                "ID: ${media.id}, Title: ${media.titleEnglish ?: media.titleRomaji}"
             )
             onAction(MediaAction.MediaClicked(media.id))
 //            onAction(MediaAction.NavigateToDetail(media.id))
         },
         headlineContent = {
-            if (media.title != null) {
+            if (media.titleEnglish != null) {
                 Column {
                     // Style the first Text with Material 3 typography settings
                     Text(
-                        text = media.title.english ?: media.title.romaji ?: "",
+                        text = media.titleEnglish ?: media.titleRomaji ?: "",
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.titleMedium  // Example style
                     )
-                    if (media.title.english != media.title.romaji) {
+                    if (media.titleEnglish != media.titleRomaji) {
                         Text(
-                            text = media.title.romaji ?: "",
+                            text = media.titleRomaji ?: "",
                             style = MaterialTheme.typography.bodyMedium  // Example style
                         )
                     }
@@ -223,9 +223,9 @@ fun MediaItem(
             Column {
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (media.studios?.edges?.mapNotNull { it?.isMain }?.isNotEmpty() == true) {
+                if (media.studios.map { it.isMain }.isNotEmpty()) {
                     Text(
-                        text = "Studio: ${media.studios.edges.firstOrNull()?.node?.name}",
+                        text = "Studio: ${media.studios.firstOrNull()?.name}",
                         style = MaterialTheme.typography.bodySmall // Example style
                     )
                 }
@@ -245,7 +245,7 @@ fun MediaItem(
             ) {
                 AsyncImage(
                     modifier = Modifier.size(100.dp, 150.dp),
-                    model = media.coverImage?.large,
+                    model = media.coverImageLarge,
                     contentScale = ContentScale.Crop,
                     placeholder = placeholder,
                     error = placeholder,
@@ -282,7 +282,7 @@ private fun LoadingItem() {
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun MediaListDetailRoot(viewModel: MediaViewModel = viewModel()) {
+fun MediaListDetailRoot(viewModel: MediaViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val navigator = rememberListDetailPaneScaffoldNavigator<Int>()
     val scope = rememberCoroutineScope()

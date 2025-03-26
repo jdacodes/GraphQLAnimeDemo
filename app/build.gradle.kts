@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.apollo)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.dagger.hilt.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -73,6 +75,9 @@ dependencies {
     implementation(libs.android.youtube.player.core)
     implementation(libs.kotlin.serialization.json)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+    implementation(libs.dagger.hilt.android)
+    ksp(libs.dagger.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

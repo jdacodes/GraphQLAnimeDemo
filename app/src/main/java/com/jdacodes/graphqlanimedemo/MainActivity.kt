@@ -4,36 +4,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.jdacodes.graphqlanimedemo.media.presentation.MediaListDetailRoot
 import com.jdacodes.graphqlanimedemo.navigation.HomeNavigation
-import com.jdacodes.graphqlanimedemo.navigation.Navigation
 import com.jdacodes.graphqlanimedemo.ui.theme.GraphQLAnimeDemoTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             GraphQLAnimeDemoTheme {
-               HomeNavigation()
-
-
+                HomeNavigation()
             }
         }
     }
 }
 
-@Composable
-private fun MainNavHost() {
-    val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = Navigation.Home.MediaListDetail) {
-        composable<Navigation.Home.MediaListDetail> {
-            MediaListDetailRoot()
-        }
-    }
-
-}

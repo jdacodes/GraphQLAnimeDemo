@@ -26,12 +26,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.jdacodes.graphqlanimedemo.MediaDetailsQuery
 import com.jdacodes.graphqlanimedemo.R
+import com.jdacodes.graphqlanimedemo.media.domain.model.MediaDetails
 
 @Composable
 internal fun CollapsedHeaderContent(
-    media: MediaDetailsQuery.Media,
+    media: MediaDetails,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -69,7 +69,7 @@ internal fun CollapsedHeaderContent(
                     .size(100.dp, 150.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .align(Alignment.CenterHorizontally),
-                model = media.coverImage?.large,
+                model = media.coverImageLarge,
                 contentScale = ContentScale.Crop,
                 placeholder = painterResource(R.drawable.ic_image_placeholder),
                 error = painterResource(R.drawable.ic_image_placeholder),
@@ -80,7 +80,7 @@ internal fun CollapsedHeaderContent(
             )
             Text(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                text = media.title?.english ?: media.title?.romaji ?: "",
+                text = media.titleEnglish ?: media.titleRomaji ?: "",
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 softWrap = true,
@@ -94,7 +94,7 @@ internal fun CollapsedHeaderContent(
             )
             Text(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                text = media.title?.romaji ?: media.title?.native ?: "",
+                text = media.titleRomaji ?: media.titleNative ?: "",
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 softWrap = true,
@@ -115,18 +115,20 @@ internal fun CollapsedHeaderContent(
 fun HeaderContentPreview() {
     CollapsedHeaderContent(
         media =
-            MediaDetailsQuery.Media(
+            MediaDetails(
                 bannerImage = null,
                 averageScore = null,
-                title = null,
+                titleEnglish = null,
+                titleNative = null,
+                titleRomaji = null,
                 description = null,
-                id = 9586,
-                studios = null,
-                coverImage = null,
+                id = 8525,
+                studios = listOf(),
+                coverImageLarge = null,
                 meanScore = null,
                 status = null,
                 episodes = null,
-                trends = null,
+                trends = listOf(),
                 format = null,
                 source = null,
                 season = null,
@@ -135,13 +137,13 @@ fun HeaderContentPreview() {
                 endDate = null,
                 popularity = null,
                 favourites = null,
-                synonyms = null,
+                synonyms = listOf(),
                 trailer = null,
-                genres = null,
-                tags = null,
-                characters = null,
-                staff = null,
-                recommendations = null
+                genres = listOf(),
+                tags = listOf(),
+                characters = listOf(),
+                staff = listOf(),
+                recommendations = listOf()
 
             ),
         modifier = Modifier.fillMaxWidth()

@@ -1,12 +1,12 @@
 package com.jdacodes.graphqlanimedemo.media.presentation
 
-import com.jdacodes.graphqlanimedemo.MediaDetailsQuery
-import com.jdacodes.graphqlanimedemo.MediaQuery
+import com.jdacodes.graphqlanimedemo.media.domain.model.MediaDetails
+import com.jdacodes.graphqlanimedemo.media.domain.model.MediaListItem
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 
 data class MediaListState(
-    val items: PersistentList<MediaQuery.Medium> = persistentListOf(),
+    val items: PersistentList<MediaListItem> = persistentListOf(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
@@ -23,7 +23,7 @@ data class MediaDetailState(
 sealed interface MediaDetailsUiState {
     object Loading : MediaDetailsUiState
     data class Error(val message: String) : MediaDetailsUiState
-    data class Success(val media: MediaDetailsQuery.Media) : MediaDetailsUiState
+    data class Success(val media: MediaDetails) : MediaDetailsUiState
 }
 
 data class MediaState(

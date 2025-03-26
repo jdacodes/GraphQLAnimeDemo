@@ -1,13 +1,11 @@
 package com.jdacodes.graphqlanimedemo.media.presentation
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.apollographql.apollo.api.Optional
-import com.apollographql.apollo.exception.ApolloNetworkException
-import com.jdacodes.graphqlanimedemo.MediaDetailsQuery
-import com.jdacodes.graphqlanimedemo.MediaQuery
-import com.jdacodes.graphqlanimedemo.media.data.remote.apolloClient
+import com.jdacodes.graphqlanimedemo.core.util.Result
+import com.jdacodes.graphqlanimedemo.media.domain.usecase.GetMediaDetailsUseCase
+import com.jdacodes.graphqlanimedemo.media.domain.usecase.GetMediaListUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.FlowPreview
@@ -23,8 +21,13 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MediaViewModel : ViewModel() {
+@HiltViewModel
+class MediaViewModel @Inject constructor(
+    private val getMediaListUseCase: GetMediaListUseCase,
+    private val getMediaDetailsUseCase: GetMediaDetailsUseCase
+) : ViewModel() {
 
     private var hasLoadedInitialData = false
 
@@ -107,47 +110,41 @@ class MediaViewModel : ViewModel() {
         }
     }
 
-    private fun loadMediaList(
-        page: Int,
-        perPage: Int,
-        search: String?
-    ) {
+    private fun loadMediaList(page: Int, perPage: Int, search: String?) {
         _state.update { currentState ->
             currentState.copy(listState = currentState.listState.copy(isLoading = true))
         }
         viewModelScope.launch {
-            try {
-                val response = apolloClient.query(
-                    MediaQuery(
-                        Optional.present(page),
-                        Optional.present(perPage),
-                        Optional.present(search)
-                    )
-                ).execute()
-
-                val newMediaItems = response.data?.Page?.media?.filterNotNull().orEmpty()
-                val currentPageInfo = response.data?.Page?.pageInfo
-
-                _state.update { currentState ->
-                    val updatedMediaList =
-                        (currentState.listState.items + newMediaItems).distinctBy { it.id }
-                    currentState.copy(
-                        listState = currentState.listState.copy(
-                            items = updatedMediaList.toPersistentList(),
-                            isLoading = false,
-                            hasNextPage = currentPageInfo?.hasNextPage ?: false,
-                            page = currentPageInfo?.currentPage?.plus(1) ?: page
+            when (val result = getMediaListUseCase(page, perPage, search)) {
+                is Result.Success -> {
+                    val currentPageInfo = result.data.pageInfo
+                    _state.update { currentState ->
+                        val updatedMediaList = (currentState.listState.items + result.data.items)
+                            .distinctBy { it.id }
+                        currentState.copy(
+                            listState = currentState.listState.copy(
+                                items = updatedMediaList.toPersistentList(),
+                                isLoading = false,
+                                hasNextPage = currentPageInfo.hasNextPage ?: false,
+                                page = currentPageInfo.currentPage.plus(1) ?: page
+                            )
                         )
-                    )
+                    }
                 }
-            } catch (e: Exception) {
-                _state.update { currentState ->
-                    currentState.copy(
-                        listState = currentState.listState.copy(
-                            isLoading = false,
-                            error = "Error loading media: ${e.message}"
+
+                is Result.Error -> {
+                    _state.update { currentState ->
+                        currentState.copy(
+                            listState = currentState.listState.copy(
+                                isLoading = false,
+                                error = "Error loading media: ${result.exception.message}"
+                            )
                         )
-                    )
+                    }
+                }
+
+                Result.Loading -> {
+                    //Loading is handled in Success and Error
                 }
             }
         }
@@ -170,52 +167,31 @@ class MediaViewModel : ViewModel() {
             currentState.copy(detailState = currentState.detailState.copy(uiState = MediaDetailsUiState.Loading))
         }
         viewModelScope.launch {
-            try {
-                val response =
-                    apolloClient.query(MediaDetailsQuery(mediaId = Optional.present(mediaId)))
-                        .execute()
-                Log.d("QueryDebug", "Received response: ${response.data}")
-                val newUiState = when {
-                    response.errors.orEmpty().isNotEmpty() -> {
-                        MediaDetailsUiState.Error(response.errors!!.first().message)
-                    }
 
-                    response.exception is ApolloNetworkException -> {
-                        MediaDetailsUiState.Error("Please check your network connectivity.")
-                    }
-
-                    response.data?.Media != null -> {
-                        response.data!!.Media?.let { MediaDetailsUiState.Success(it) }
-                        // Send navigation event only on success
-                        _navigationChannel.send(mediaId)
-                        response.data!!.Media?.let { MediaDetailsUiState.Success(it) }
-                    }
-
-                    else -> {
-                        MediaDetailsUiState.Error("Oh no... An error happened.")
-                    }
-                }
-                Log.d("Fetch error", response.exception.toString())
-                Log.d("Request error", response.errors.toString() + response.data.toString())
-                Log.d("Field error", response.errors.toString() + response.data.toString())
-
-                if (newUiState != null) {
+            when (val result = getMediaDetailsUseCase(mediaId)) {
+                is Result.Success -> {
                     _state.update { currentState ->
                         currentState.copy(
                             detailState = currentState.detailState.copy(
-                                uiState = newUiState
+                                uiState = MediaDetailsUiState.Success(result.data)
+                            )
+                        )
+                    }
+                    _navigationChannel.send(mediaId)
+                }
+
+                is Result.Error -> {
+                    _state.update { currentState ->
+                        currentState.copy(
+                            detailState = currentState.detailState.copy(
+                                uiState = MediaDetailsUiState.Error("Error loading media details: ${result.exception.message}")
                             )
                         )
                     }
                 }
 
-            } catch (e: Exception) {
-                _state.update { currentState ->
-                    currentState.copy(
-                        detailState = currentState.detailState.copy(
-                            uiState = MediaDetailsUiState.Error("Error loading media details: ${e.message}")
-                        )
-                    )
+                Result.Loading -> {
+                    //Loading is handled in Success and Error
                 }
             }
         }

@@ -52,8 +52,10 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
-import com.jdacodes.graphqlanimedemo.MediaDetailsQuery
 import com.jdacodes.graphqlanimedemo.R
+import com.jdacodes.graphqlanimedemo.media.domain.model.MediaDetails
+import com.jdacodes.graphqlanimedemo.media.domain.model.RecommendationItem
+import com.jdacodes.graphqlanimedemo.media.domain.model.TagItem
 import com.jdacodes.graphqlanimedemo.type.CharacterRole
 import com.jdacodes.graphqlanimedemo.type.MediaFormat
 import com.jdacodes.graphqlanimedemo.type.MediaSource
@@ -65,7 +67,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun TabContent(
-    media: MediaDetailsQuery.Media,
+    media: MediaDetails,
     modifier: Modifier = Modifier
 ) {
     val pagerState = rememberPagerState { 3 }
@@ -131,7 +133,7 @@ fun Tabs(pagerState: PagerState) {
 @Composable
 fun TabsContent(
     pagerState: PagerState,
-    media: MediaDetailsQuery.Media
+    media: MediaDetails
 ) {
     HorizontalPager(state = pagerState) { page ->
         when (page) {
@@ -164,19 +166,20 @@ fun TabContentScreen(data: String) {
 }
 
 @Composable
-fun CharactersTabContent(media: MediaDetailsQuery.Media) {
+fun CharactersTabContent(media: MediaDetails) {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        if (!media.characters?.edges.isNullOrEmpty()) {
-            items(media.characters?.edges ?: emptyList()) { character ->
-                character?.node?.let { node ->
+        if (media.characters.isNotEmpty()) {
+            items(media.characters) { character ->
+                character.let { node ->
                     ListItem(
                         headlineContent = {
                             Text(
-                                text = node.name?.full ?: "",
+//                                text = node.name?.full ?: "",
+                                text = node.name ?: "",
                                 color = MaterialTheme.colorScheme.primary,
                                 style = MaterialTheme.typography.titleMedium
                             )
@@ -203,7 +206,7 @@ fun CharactersTabContent(media: MediaDetailsQuery.Media) {
                                 modifier = Modifier
                                     .size(100.dp, 150.dp)
                                     .clip(RoundedCornerShape(8.dp)),
-                                model = node.image?.large ?: node.image?.medium,
+                                model = node.imageLarge ?: node.imageMedium,
                                 contentScale = ContentScale.Crop,
                                 placeholder = placeholder,
                                 error = placeholder,
@@ -220,20 +223,20 @@ fun CharactersTabContent(media: MediaDetailsQuery.Media) {
 }
 
 @Composable
-fun StaffTabContent(media: MediaDetailsQuery.Media) {
+fun StaffTabContent(media: MediaDetails) {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        if (!media.staff?.nodes.isNullOrEmpty()) {
-            items(media.staff?.nodes ?: emptyList()) { staff ->
+        if (media.staff.isNotEmpty()) {
+            items(media.staff ?: emptyList()) { staff ->
                 if (staff != null) {
                     ListItem(
                         headlineContent = {
                             staff.name?.let { name ->
                                 Text(
-                                    text = staff.name.full ?: "",
+                                    text = staff.name ?: "",
                                     color = MaterialTheme.colorScheme.primary,
                                     style = MaterialTheme.typography.titleMedium
                                 )
@@ -262,7 +265,7 @@ fun StaffTabContent(media: MediaDetailsQuery.Media) {
                                 modifier = Modifier
                                     .size(100.dp, 150.dp)
                                     .clip(RoundedCornerShape(8.dp)),
-                                model = staff.image?.large ?: staff.image?.medium,
+                                model = staff.imageLarge ?: staff.imageMedium,
                                 contentScale = ContentScale.Crop,
                                 placeholder = placeholder,
                                 error = placeholder,
@@ -282,7 +285,7 @@ fun StaffTabContent(media: MediaDetailsQuery.Media) {
 
 
 @Composable
-fun InfoTabContent(media: MediaDetailsQuery.Media) {
+fun InfoTabContent(media: MediaDetails) {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
@@ -372,10 +375,10 @@ fun InfoTabContent(media: MediaDetailsQuery.Media) {
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
-                if (media.studios?.edges?.mapNotNull { it?.isMain }
-                        ?.isNotEmpty() == true) {
+                if (media.studios.map { it.isMain }
+                        .isNotEmpty()) {
                     Text(
-                        text = media.studios.edges.firstOrNull()?.node?.name ?: "Unknown",
+                        text = media.studios.firstOrNull()?.name ?: "Unknown",
                         style = MaterialTheme.typography.bodySmall // Example style
                     )
                 }
@@ -394,8 +397,8 @@ fun InfoTabContent(media: MediaDetailsQuery.Media) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 val fullName =
-                    media.staff?.nodes?.firstOrNull { it?.primaryOccupations?.contains("Mangaka") == true }
-                        ?.name?.full ?: "Unknown"
+                    media.staff.firstOrNull { it.primaryOccupations?.contains("Mangaka") == true }
+                        ?.name ?: "Unknown"
                 Text(
                     text = fullName,
                     style = MaterialTheme.typography.bodySmall // Example style
@@ -524,7 +527,7 @@ fun InfoTabContent(media: MediaDetailsQuery.Media) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = media.title?.romaji ?: "",
+                    text = media.titleRomaji ?: "",
                     style = MaterialTheme.typography.bodySmall // Example style
                 )
             }
@@ -542,7 +545,7 @@ fun InfoTabContent(media: MediaDetailsQuery.Media) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = media.title?.native ?: "",
+                    text = media.titleNative ?: "",
                     style = MaterialTheme.typography.bodySmall // Example style
                 )
             }
@@ -598,7 +601,7 @@ fun InfoTabContent(media: MediaDetailsQuery.Media) {
                     )
                     Log.d(
                         "MediaTrailer",
-                        "Trailer loaded for ${media.id} ${media.title}"
+                        "Trailer loaded for ${media.id} ${media.titleEnglish}"
                     )
                 } else {
                     Text(
@@ -756,84 +759,78 @@ fun MediaGenres(genres: List<String?>?) {
 }
 
 @Composable
-fun MediaTags(tags: List<MediaDetailsQuery.Tag?>?) {
+fun MediaTags(tags: List<TagItem>) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-            if (tags != null) {
-                repeat(tags.size) { index ->
-                    AssistChip(
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        onClick = { /* do something*/ },
-                        label = { Text("${tags[index]?.name ?: ""}: ${tags[index]?.rank ?: ""}%") },
+            repeat(tags.size) { index ->
+                AssistChip(
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    onClick = { /* do something*/ },
+                    label = { Text("${tags[index].name ?: ""}: ${tags[index].rank ?: ""}%") },
 
-                        )
-                }
+                    )
             }
         }
     }
 }
 
 @Composable
-fun MediaRecommendation(recommendations: MediaDetailsQuery.Recommendations?) {
+fun MediaRecommendation(recommendations: List<RecommendationItem>) {
 
-    if (recommendations != null) {
-        if (recommendations.nodes != null) {
-            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                recommendations.nodes.forEach { node ->
-                    if (node?.mediaRecommendation != null) {
-                        Column(
-                            modifier = Modifier
-                                .width(100.dp)
-                                .padding(8.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            val placeholder = if (isSystemInDarkTheme()) {
-                                painterResource(R.drawable.ic_image_placeholder_dark)
+    if (recommendations.isNotEmpty()) {
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            recommendations.forEach { node ->
+                Column(
+                    modifier = Modifier
+                        .width(100.dp)
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val placeholder = if (isSystemInDarkTheme()) {
+                        painterResource(R.drawable.ic_image_placeholder_dark)
 
-                            } else {
-                                painterResource(R.drawable.ic_image_placeholder)
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(100.dp, 150.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                            ) {
-                                AsyncImage(
-                                    model = node.mediaRecommendation.coverImage?.extraLarge
-                                        ?: node.mediaRecommendation.coverImage?.large ?: "",
-                                    contentScale = ContentScale.Crop,
-                                    placeholder = placeholder,
-                                    error = placeholder,
-                                    contentDescription = "Media image",
-                                )
-
-                                Text(
-                                    text = node.mediaRecommendation.meanScore?.let { "${it.toFloat() / 10f}/10" }
-                                        ?: "",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .align(Alignment.BottomEnd)
-                                        .padding(4.dp) // Adjust padding if needed
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = node.mediaRecommendation.title?.romaji
-                                    ?: node.mediaRecommendation.title?.english ?: "Unknown",
-                                style = MaterialTheme.typography.titleMedium,
-                                maxLines = 2,
-                                modifier = Modifier.width(100.dp)
-                            )
-                            Text(
-                                text = "Episodes: ${node.mediaRecommendation.episodes ?: "Unknown"}",
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.width(100.dp)
-                            )
-                        }
+                    } else {
+                        painterResource(R.drawable.ic_image_placeholder)
                     }
+
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp, 150.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    ) {
+                        AsyncImage(
+                            model = node.coverImageExtraLarge
+                                ?: node.coverImageLarge ?: "",
+                            contentScale = ContentScale.Crop,
+                            placeholder = placeholder,
+                            error = placeholder,
+                            contentDescription = "Media image",
+                        )
+
+                        Text(
+                            text = node.meanScore?.let { "${it.toFloat() / 10f}/10" }
+                                ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.surface)
+                                .align(Alignment.BottomEnd)
+                                .padding(4.dp) // Adjust padding if needed
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = node.titleRomaji
+                            ?: node.titleEnglish ?: "Unknown",
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        modifier = Modifier.width(100.dp)
+                    )
+                    Text(
+                        text = "Episodes: ${node.episodes ?: "Unknown"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.width(100.dp)
+                    )
                 }
             }
         }
@@ -843,37 +840,38 @@ fun MediaRecommendation(recommendations: MediaDetailsQuery.Recommendations?) {
 }
 
 
-private fun MediaFormat.toFormatString(): String = when (this) {
-    MediaFormat.TV -> "TV"
-    MediaFormat.TV_SHORT -> "TV Short"
-    MediaFormat.MOVIE -> "Movie"
-    MediaFormat.SPECIAL -> "Special"
-    MediaFormat.OVA -> "OVA"
-    MediaFormat.ONA -> "ONA"
-    MediaFormat.MUSIC -> "Music"
-    MediaFormat.MANGA -> "Manga"
-    MediaFormat.NOVEL -> "Novel"
-    MediaFormat.ONE_SHOT -> "One Shot"
+private fun String.toFormatString(): String = when (this) {
+    MediaFormat.TV.toString() -> "TV"
+    MediaFormat.TV_SHORT.toString() -> "TV Short"
+    MediaFormat.MOVIE.toString() -> "Movie"
+    MediaFormat.SPECIAL.toString() -> "Special"
+    MediaFormat.OVA.toString() -> "OVA"
+    MediaFormat.ONA.toString() -> "ONA"
+    MediaFormat.MUSIC.toString() -> "Music"
+    MediaFormat.MANGA.toString() -> "Manga"
+    MediaFormat.NOVEL.toString() -> "Novel"
+    MediaFormat.ONE_SHOT.toString() -> "One Shot"
     else -> "Unknown"
 }
 
-private fun MediaSource.toSourceString(): String = when (this) {
-    MediaSource.ORIGINAL -> "Original"
-    MediaSource.MANGA -> "Manga"
-    MediaSource.LIGHT_NOVEL -> "Light Novel"
-    MediaSource.VISUAL_NOVEL -> "Visual Novel"
-    MediaSource.VIDEO_GAME -> "Video Game"
-    MediaSource.OTHER -> "Other"
-    MediaSource.NOVEL -> "Novel"
-    MediaSource.DOUJINSHI -> "Doujinshi"
-    MediaSource.ANIME -> "Anime"
-    MediaSource.WEB_NOVEL -> "Web Novel"
-    MediaSource.LIVE_ACTION -> "Live Action"
-    MediaSource.GAME -> "Game"
-    MediaSource.COMIC -> "Comic"
-    MediaSource.MULTIMEDIA_PROJECT -> "Multimedia Project"
-    MediaSource.PICTURE_BOOK -> "Picture Book"
-    MediaSource.UNKNOWN__ -> "Unknown"
+private fun String.toSourceString(): String = when (this) {
+    MediaSource.ORIGINAL.toString() -> "Original"
+    MediaSource.MANGA.toString() -> "Manga"
+    MediaSource.LIGHT_NOVEL.toString() -> "Light Novel"
+    MediaSource.VISUAL_NOVEL.toString() -> "Visual Novel"
+    MediaSource.VIDEO_GAME.toString() -> "Video Game"
+    MediaSource.OTHER.toString() -> "Other"
+    MediaSource.NOVEL.toString() -> "Novel"
+    MediaSource.DOUJINSHI.toString() -> "Doujinshi"
+    MediaSource.ANIME.toString() -> "Anime"
+    MediaSource.WEB_NOVEL.toString() -> "Web Novel"
+    MediaSource.LIVE_ACTION.toString() -> "Live Action"
+    MediaSource.GAME.toString() -> "Game"
+    MediaSource.COMIC.toString() -> "Comic"
+    MediaSource.MULTIMEDIA_PROJECT.toString() -> "Multimedia Project"
+    MediaSource.PICTURE_BOOK.toString() -> "Picture Book"
+    MediaSource.UNKNOWN__.toString() -> "Unknown"
+    else -> "Unknown"
 }
 
 private fun Int.toStringMonth(): String {
@@ -896,9 +894,9 @@ private fun Int.toStringMonth(): String {
     }
 }
 
-private fun CharacterRole.toRoleString(): String = when (this) {
-    CharacterRole.MAIN -> "Main"
-    CharacterRole.SUPPORTING -> "Supporting"
-    CharacterRole.BACKGROUND -> "Background"
+private fun String.toRoleString(): String = when (this) {
+    CharacterRole.MAIN.toString() -> "Main"
+    CharacterRole.SUPPORTING.toString() -> "Supporting"
+    CharacterRole.BACKGROUND.toString() -> "Background"
     else -> "Unknown"
 }

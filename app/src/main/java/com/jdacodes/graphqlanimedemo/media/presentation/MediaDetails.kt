@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import com.jdacodes.graphqlanimedemo.media.presentation.composable.CollapsedHeaderContent
 import com.jdacodes.graphqlanimedemo.media.presentation.composable.CollapsingLayout
 import com.jdacodes.graphqlanimedemo.MediaDetailsQuery
+import com.jdacodes.graphqlanimedemo.media.domain.model.MediaDetails
 import com.jdacodes.graphqlanimedemo.media.presentation.composable.TabContent
 
 @Composable
@@ -79,7 +80,7 @@ private fun Loading() {
 
 @Composable
 private fun MediaDetailsScreen(
-    media: MediaDetailsQuery.Media,
+    media: MediaDetails,
     onBack: () -> Unit
 ) {
     Scaffold(
@@ -87,7 +88,7 @@ private fun MediaDetailsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = media.title?.english ?: media.title?.romaji ?: ""
+                        text = media.titleEnglish ?: media.titleRomaji ?: ""
                     )
                 },
                 navigationIcon = {
