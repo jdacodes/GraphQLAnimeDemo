@@ -101,7 +101,7 @@ fun MediaList(
                             onSearch = {
                                 // Handle search here
                                 keyboardController?.hide()
-                                onAction(MediaAction.ResetSearch)
+                                onAction(MediaAction.SearchSubmitted(listState.searchText))
                             }
                         )
                     )
@@ -197,10 +197,8 @@ fun MediaItem(
                 "ID: ${media.id}, Title: ${media.titleEnglish ?: media.titleRomaji}"
             )
             onAction(MediaAction.MediaClicked(media.id))
-//            onAction(MediaAction.NavigateToDetail(media.id))
         },
         headlineContent = {
-            if (media.titleEnglish != null) {
                 Column {
                     // Style the first Text with Material 3 typography settings
                     Text(
@@ -215,7 +213,6 @@ fun MediaItem(
                         )
                     }
                 }
-            }
 
         },
         supportingContent = {

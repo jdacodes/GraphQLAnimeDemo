@@ -91,9 +91,14 @@ class MediaViewModel @Inject constructor(
                 loadMediaDetails(action.mediaId)
             }
 
-            MediaAction.ResetSearch -> {
-                _state.update {
-                    it.copy(listState = it.listState.copy(searchText = ""))
+            is MediaAction.SearchSubmitted -> {
+
+                val currentState = state.value
+                if (currentState.listState.searchText.isNotEmpty()) {
+                    loadMediaList(
+                        currentState.listState.page,
+                        currentState.listState.perPage,
+                        currentState.listState.searchText.ifEmpty { null })
                 }
             }
 
