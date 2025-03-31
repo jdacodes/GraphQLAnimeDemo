@@ -2,14 +2,16 @@ package com.jdacodes.graphqlanimedemo.media.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jdacodes.graphqlanimedemo.core.util.EventManager
+import com.jdacodes.graphqlanimedemo.core.util.EventManager.AppEvent
 import com.jdacodes.graphqlanimedemo.core.util.Result
 import com.jdacodes.graphqlanimedemo.media.domain.usecase.GetMediaDetailsUseCase
 import com.jdacodes.graphqlanimedemo.media.domain.usecase.GetMediaListUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,7 +19,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -60,13 +61,9 @@ class MediaViewModel @Inject constructor(
             }
         }.debounce(500L).distinctUntilChanged()
 
-    // Channel for navigation events
-    private val _navigationChannel = Channel<Int>()
-    val navigationChannel = _navigationChannel.receiveAsFlow()
-
     init {
         // Load media list initially
-        viewModelScope.launch {
+        viewModelScope.launch(IO) {
             debouncedSearchText.collect { debouncedSearchText ->
                 // Reset and load new results when derived search text changes
                 resetPaginationState()
@@ -112,6 +109,15 @@ class MediaViewModel @Inject constructor(
                 }
             }
 
+            is MediaAction.SetTrailerFullscreen -> {
+                _state.update { currentState ->
+                    currentState.copy(
+                        detailState = currentState.detailState.copy(
+                            isTrailerFullscreen = action.isFullscreen
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -119,7 +125,7 @@ class MediaViewModel @Inject constructor(
         _state.update { currentState ->
             currentState.copy(listState = currentState.listState.copy(isLoading = true))
         }
-        viewModelScope.launch {
+        viewModelScope.launch(IO) {
             when (val result = getMediaListUseCase(page, perPage, search)) {
                 is Result.Success -> {
                     val currentPageInfo = result.data.pageInfo
@@ -130,8 +136,8 @@ class MediaViewModel @Inject constructor(
                             listState = currentState.listState.copy(
                                 items = updatedMediaList.toPersistentList(),
                                 isLoading = false,
-                                hasNextPage = currentPageInfo.hasNextPage ?: false,
-                                page = currentPageInfo.currentPage.plus(1) ?: page
+                                hasNextPage = currentPageInfo.hasNextPage,
+                                page = currentPageInfo.currentPage.plus(1)
                             )
                         )
                     }
@@ -171,7 +177,7 @@ class MediaViewModel @Inject constructor(
         _state.update { currentState ->
             currentState.copy(detailState = currentState.detailState.copy(uiState = MediaDetailsUiState.Loading))
         }
-        viewModelScope.launch {
+        viewModelScope.launch(IO) {
 
             when (val result = getMediaDetailsUseCase(mediaId)) {
                 is Result.Success -> {
@@ -182,7 +188,7 @@ class MediaViewModel @Inject constructor(
                             )
                         )
                     }
-                    _navigationChannel.send(mediaId)
+                    EventManager.triggerEvent(AppEvent.NavigateToDetail(mediaId))
                 }
 
                 is Result.Error -> {

@@ -34,8 +34,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
-import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
-import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
+import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -199,20 +198,20 @@ fun MediaItem(
             onAction(MediaAction.MediaClicked(media.id))
         },
         headlineContent = {
-                Column {
-                    // Style the first Text with Material 3 typography settings
+            Column {
+                // Style the first Text with Material 3 typography settings
+                Text(
+                    text = media.titleEnglish ?: media.titleRomaji ?: "",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleMedium  // Example style
+                )
+                if (media.titleEnglish != media.titleRomaji) {
                     Text(
-                        text = media.titleEnglish ?: media.titleRomaji ?: "",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.titleMedium  // Example style
+                        text = media.titleRomaji ?: "",
+                        style = MaterialTheme.typography.bodyMedium  // Example style
                     )
-                    if (media.titleEnglish != media.titleRomaji) {
-                        Text(
-                            text = media.titleRomaji ?: "",
-                            style = MaterialTheme.typography.bodyMedium  // Example style
-                        )
-                    }
                 }
+            }
 
         },
         supportingContent = {
@@ -279,20 +278,16 @@ private fun LoadingItem() {
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun MediaListDetailRoot(viewModel: MediaViewModel = hiltViewModel()) {
+fun MediaListDetailRoot(
+    viewModel: MediaViewModel = hiltViewModel(),
+    navigator: ThreePaneScaffoldNavigator<Int>
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val navigator = rememberListDetailPaneScaffoldNavigator<Int>()
     val scope = rememberCoroutineScope()
 
     BackHandler(navigator.canNavigateBack()) {
         scope.launch {
             navigator.navigateBack()
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.navigationChannel.collect { mediaId ->
-            navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, mediaId)
         }
     }
 

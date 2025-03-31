@@ -62,6 +62,7 @@ import com.jdacodes.graphqlanimedemo.type.MediaSource
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.FullscreenListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 import kotlinx.coroutines.launch
 
@@ -651,35 +652,49 @@ fun InfoTabContent(media: MediaDetails) {
 @Composable
 fun MediaTrailer(
     videoId: String,
-    lifeCycleOwner: LifecycleOwner
+    lifeCycleOwner: LifecycleOwner,
 ) {
+    // TODO: Full screen back navigation bug
+
     val activity = LocalActivity.current
     var isFullscreen by remember { mutableStateOf(false) }
     var fullscreenView: View? by remember { mutableStateOf(null) }
     var exitFullscreenCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var youTubePlayer: YouTubePlayer? by remember { mutableStateOf(null) }
 
-    // Handle fullscreen item
+    val decorView = remember(activity) { activity?.window?.decorView as ViewGroup }
+
     AndroidView(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
             .clip(RoundedCornerShape(16.dp)),
         factory = { context ->
-            YouTubePlayerView(context = context).apply {
+            val iFramePlayerOptions = IFramePlayerOptions.Builder()
+                .controls(1) // display controls
+                .fullscreen(1) // enable built-in fullscreen button
+                .build()
+
+            YouTubePlayerView(context).apply {
+                enableAutomaticInitialization.apply {
+                    enableAutomaticInitialization = false
+                }
                 lifeCycleOwner.lifecycle.addObserver(this)
 
-                addYouTubePlayerListener(object : AbstractYouTubePlayerListener() {
-                    override fun onReady(youTubePlayer: YouTubePlayer) {
-                        youTubePlayer.loadVideo(videoId, 0f)
-                    }
-
-                })
+                // Initialize player with iframe options:
+                initialize(
+                    object : AbstractYouTubePlayerListener() {
+                        override fun onReady(player: YouTubePlayer) {
+                            youTubePlayer = player
+                            player.cueVideo(videoId, 0f)
+                        }
+                    },
+                    handleNetworkEvents = false,
+                    iFramePlayerOptions
+                ) // <-- use iframe player options
 
                 addFullscreenListener(object : FullscreenListener {
-                    override fun onEnterFullscreen(
-                        view: View,
-                        exitFullscreen: () -> Unit
-                    ) {
+                    override fun onEnterFullscreen(view: View, exitFullscreen: () -> Unit) {
                         isFullscreen = true
                         fullscreenView = view
                         exitFullscreenCallback = exitFullscreen
@@ -693,12 +708,33 @@ fun MediaTrailer(
 
 
                 })
+
+
             }
+        },
+        update = { playerView ->
+            playerView.addFullscreenListener(object : FullscreenListener {
+                override fun onEnterFullscreen(view: View, exitFullscreen: () -> Unit) {
+                    isFullscreen = true
+                    fullscreenView = view
+                    exitFullscreenCallback = exitFullscreen
+                }
+
+
+                override fun onExitFullscreen() {
+                    isFullscreen = false
+                    exitFullscreenCallback = null
+                    fullscreenView = null
+                }
+
+            })
+
+
         }
     )
 
     // Display fullscreen view when requested
-    val decorView = remember(activity) { activity?.window?.decorView as ViewGroup }
+//    val decorView = remember(activity) { activity?.window?.decorView as ViewGroup }
 
     DisposableEffect(isFullscreen, fullscreenView) {
         if (isFullscreen && fullscreenView != null) {
@@ -717,7 +753,12 @@ fun MediaTrailer(
         }
     }
 
-    // Ensure back button handles fullscreen exit (optional, but recommended)
+    DisposableEffect(Unit) {
+        onDispose {
+            youTubePlayer?.pause()
+        }
+    }
+
     BackHandler(enabled = isFullscreen) {
         exitFullscreenCallback?.invoke()
     }

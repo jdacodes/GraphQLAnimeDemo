@@ -18,6 +18,7 @@ data class MediaListState(
 
 data class MediaDetailState(
     var uiState: MediaDetailsUiState = MediaDetailsUiState.Loading,
+    val isTrailerFullscreen: Boolean = false
 )
 
 sealed interface MediaDetailsUiState {
