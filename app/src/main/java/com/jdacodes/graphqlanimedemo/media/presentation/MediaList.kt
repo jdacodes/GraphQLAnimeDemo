@@ -47,13 +47,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.jdacodes.graphqlanimedemo.R
+import com.jdacodes.graphqlanimedemo.core.util.TestTags
 import com.jdacodes.graphqlanimedemo.media.domain.model.MediaListItem
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -158,14 +163,16 @@ fun PaginatedLazyColumn(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
             .fillMaxSize()
-            .padding(16.dp),  // Add padding for better visual spacing
+            .padding(16.dp)
+            .testTag(TestTags.PaginatedList),  // Add test tag to list
         state = listState  // Pass the scroll state
     ) {
         // Render each item in the list using a unique key
         itemsIndexed(items, key = { _, item -> item.id }) { _, media ->
             MediaItem(
                 media = media,
-                onAction = onAction  // Simplified click handler
+                onAction = onAction,  // Simplified click handler
+                modifier = Modifier.testTag("${TestTags.MediaListItem}_${media.id}")  // Add test tag to list item
             )
         }
 
@@ -186,11 +193,11 @@ fun PaginatedLazyColumn(
 @Composable
 fun MediaItem(
     media: MediaListItem,
-    onAction: (MediaAction) -> Unit
-
+    onAction: (MediaAction) -> Unit,
+    modifier: Modifier = Modifier  // Accept Modifier as parameter
 ) {
     ListItem(
-        modifier = Modifier.clickable {
+        modifier = modifier.clickable {
             Log.d(
                 "MEDIA_CLICK",
                 "ID: ${media.id}, Title: ${media.titleEnglish ?: media.titleRomaji}"
@@ -263,13 +270,21 @@ fun MediaItem(
 }
 
 @Composable
-private fun LoadingItem() {
+private fun LoadingItem(
+    modifier: Modifier = Modifier
+) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
+        modifier = modifier
             .background(MaterialTheme.colorScheme.background)
             .fillMaxWidth()
             .padding(16.dp)
+            .testTag(TestTags.LoadingIndicator)
+            // Add when accessibility is needed
+            .semantics {
+                contentDescription = "Loading indicator"
+            }
+
     ) {
         CircularProgressIndicator()
     }

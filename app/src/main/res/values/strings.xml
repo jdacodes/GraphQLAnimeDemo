@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">GraphQLAnimeDemo</string>
+    <string name="loading_more_items">Loading</string>
 </resources>
