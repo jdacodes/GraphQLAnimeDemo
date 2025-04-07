@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -28,8 +29,9 @@ import com.jdacodes.graphqlanimedemo.media.presentation.MediaListDetailRoot
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun HomeNavigation() {
-    val navController = rememberNavController()
+fun HomeNavigation(
+    navController: NavHostController = rememberNavController()
+) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val navigator = rememberListDetailPaneScaffoldNavigator<Int>()
 

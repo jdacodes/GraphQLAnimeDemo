@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">GraphQLAnimeDemo</string>
     <string name="loading_more_items">Loading</string>
+    <string name="search">search</string>
+    <string name="favorites">favorites</string>
+    <string name="dashboard">dashboard</string>
+    <string name="login">login</string>
+    <string name="register">register</string>
 </resources>
