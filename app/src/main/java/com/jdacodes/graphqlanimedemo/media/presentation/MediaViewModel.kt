@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -56,15 +57,15 @@ class MediaViewModel @Inject constructor(
         )
 
     @OptIn(FlowPreview::class)
-    val debouncedSearchText: Flow<String> = _state
+    val debouncedSearchText: Flow<String?> = _state
         .map { it.listState.searchText }
         .debounce(500L)
         .distinctUntilChanged()
         .map { searchText ->
             if (searchText.isEmpty() || searchText.length >= 3) {
-                searchText
+                searchText.ifEmpty { null }
             } else {
-                ""
+                null
             }
         }
         .distinctUntilChanged()
@@ -75,13 +76,14 @@ class MediaViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(IO) {
-            debouncedSearchText.collectLatest { debouncedText ->
-                if (hasLoadedInitialData) {
+            debouncedSearchText.collectLatest { debouncedSearchTerm ->
+                val shouldSearch = hasLoadedInitialData && (debouncedSearchTerm == null || debouncedSearchTerm.length >= 3)
+                if (shouldSearch) {
                     resetPaginationState()
                     loadMediaList(
                         page = 1,
                         perPage = _state.value.listState.perPage,
-                        search = debouncedText.ifEmpty { null },
+                        search = debouncedSearchTerm,
                         isAdult = _state.value.listState.isAdultChecked
                     )
                 }
@@ -91,13 +93,15 @@ class MediaViewModel @Inject constructor(
         adultStateFlow
             .filter { hasLoadedInitialData }
             .onEach { isAdult ->
+                val currentState = _state.value.listState
+                val currentSearch = currentState.searchText.let {
+                    if (it.isEmpty() || it.length >= 3) it.ifEmpty { null } else null
+                }
                 resetPaginationState()
                 loadMediaList(
                     page = 1,
-                    perPage = _state.value.listState.perPage,
-                    search = _state.value.listState.searchText.let {
-                        if (it.length >= 3 || it.isEmpty()) it.ifEmpty { null } else null
-                    },
+                    perPage = currentState.perPage,
+                    search = currentSearch,
                     isAdult = isAdult
                 )
             }
@@ -113,9 +117,19 @@ class MediaViewModel @Inject constructor(
             }
 
             is MediaAction.AdultCheckboxToggled -> {
-                _state.update {
+                val currentState = _state.updateAndGet {
                     it.copy(listState = it.listState.copy(isAdultChecked = action.isChecked))
                 }
+                val currentSearch = currentState.listState.searchText.let {
+                    if (it.isEmpty() || it.length >= 3) it.ifEmpty { null } else null
+                }
+                resetPaginationState()
+                loadMediaList(
+                    page = 1,
+                    perPage = currentState.listState.perPage,
+                    search = currentSearch,
+                    isAdult = currentState.listState.isAdultChecked
+                )
             }
 
             is MediaAction.MediaClicked -> {
@@ -161,19 +175,26 @@ class MediaViewModel @Inject constructor(
     }
 
     private fun loadMediaList(page: Int, perPage: Int, search: String?, isAdult: Boolean) {
-        val listState = _state.value.listState
-        val currentSearch = listState.searchText.let { if (it.length >= 3 || it.isEmpty()) it.ifEmpty { null } else null }
-        if (page == 1 && listState.items.isNotEmpty() && !listState.isLoading) {
-            val currentFilters = Pair(currentSearch, listState.isAdultChecked)
-            val newFilters = Pair(search, isAdult)
-            if (currentFilters == newFilters) {
+        val currentState = _state.value.listState
+        if (currentState.isLoading &&
+            currentState.page == page &&
+            (currentState.searchText.let { if (it.isEmpty() || it.length >= 3) it.ifEmpty { null } else null } == search) &&
+            currentState.isAdultChecked == isAdult
+        ) {
+            return
+        }
+
+        if (page == 1 && currentState.items.isNotEmpty() && !currentState.isLoading) {
+            val currentLoadedSearch = currentState.loadedSearchTerm
+            val currentLoadedAdult = currentState.loadedIsAdult
+            if (currentLoadedSearch == search && currentLoadedAdult == isAdult) {
                 return
             }
         }
 
-        _state.update { currentState ->
-            currentState.copy(
-                listState = currentState.listState.copy(isLoading = true)
+        _state.update { currentGlobalState ->
+            currentGlobalState.copy(
+                listState = currentGlobalState.listState.copy(isLoading = true)
             )
         }
 
@@ -194,8 +215,9 @@ class MediaViewModel @Inject constructor(
                                 isLoading = false,
                                 hasNextPage = currentPageInfo.hasNextPage,
                                 page = if (currentPageInfo.hasNextPage) currentPageInfo.currentPage.plus(1) else currentState.listState.page,
-                                searchText = search ?: "",
-                                isAdultChecked = isAdult
+                                isAdultChecked = isAdult,
+                                loadedSearchTerm = search,
+                                loadedIsAdult = isAdult
                             )
                         )
                     }
@@ -205,6 +227,8 @@ class MediaViewModel @Inject constructor(
                         currentState.copy(
                             listState = currentState.listState.copy(
                                 isLoading = false,
+                                loadedSearchTerm = search,
+                                loadedIsAdult = isAdult,
                                 error = "Error loading media: ${result.exception.message}"
                             )
                         )
@@ -223,7 +247,11 @@ class MediaViewModel @Inject constructor(
                     hasNextPage = true,
                     items = persistentListOf(),
                     isLoading = false,
-                    error = null
+                    error = null,
+                    loadedSearchTerm = currentState.listState.searchText.let {
+                        if (it.isEmpty() || it.length >= 3) it.ifEmpty { null } else null
+                    },
+                    loadedIsAdult = currentState.listState.isAdultChecked
                 )
             )
         }

@@ -8,13 +8,14 @@ import kotlinx.collections.immutable.persistentListOf
 data class MediaListState(
     val items: PersistentList<MediaListItem> = persistentListOf(),
     val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
     val error: String? = null,
-    val searchText: String = "",
+    val searchText: String = "", 
     val hasNextPage: Boolean = true,
     val page: Int = 1,
-    val perPage: Int = 10,
-    val isAdultChecked: Boolean = false
+    val perPage: Int = 10, 
+    val isAdultChecked: Boolean = false, 
+    val loadedSearchTerm: String? = null, 
+    val loadedIsAdult: Boolean = false 
 )
 
 data class MediaDetailState(
