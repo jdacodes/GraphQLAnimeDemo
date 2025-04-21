@@ -5,6 +5,6 @@ import com.jdacodes.graphqlanimedemo.media.domain.model.MediaDetails
 import com.jdacodes.graphqlanimedemo.media.domain.model.MediaListResult
 
 interface MediaRepository {
-    suspend fun getMediaList(page: Int, perPage: Int, search: String?): Result<MediaListResult>
+    suspend fun getMediaList(page: Int, perPage: Int, search: String?, isAdult: Boolean): Result<MediaListResult>
     suspend fun getMediaDetails(mediaId: Int): Result<MediaDetails>
 }

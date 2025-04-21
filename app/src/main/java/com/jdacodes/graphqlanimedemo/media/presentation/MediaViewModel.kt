@@ -15,9 +15,13 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -36,8 +40,12 @@ class MediaViewModel @Inject constructor(
     val state = _state
         .onStart {
             if (!hasLoadedInitialData) {
-                /** Load initial data here **/
-                loadMediaList(_state.value.listState.page, _state.value.listState.perPage, null)
+                loadMediaList(
+                    page = _state.value.listState.page,
+                    perPage = _state.value.listState.perPage,
+                    search = null,
+                    isAdult = _state.value.listState.isAdultChecked
+                )
                 hasLoadedInitialData = true
             }
         }
@@ -48,32 +56,52 @@ class MediaViewModel @Inject constructor(
         )
 
     @OptIn(FlowPreview::class)
-    val debouncedSearchText: Flow<String> =
-        combine(_state) { rootState ->
-            val searchText = rootState[0].listState.searchText
-            // Only create a new derived state if the search text is at least 3 characters
-            // or empty (to show all results)
+    val debouncedSearchText: Flow<String> = _state
+        .map { it.listState.searchText }
+        .debounce(500L)
+        .distinctUntilChanged()
+        .map { searchText ->
             if (searchText.isEmpty() || searchText.length >= 3) {
                 searchText
             } else {
-                // Return previous value or empty if less than minimum characters
                 ""
             }
-        }.debounce(500L).distinctUntilChanged()
+        }
+        .distinctUntilChanged()
+
+    private val adultStateFlow = _state
+        .map { it.listState.isAdultChecked }
+        .distinctUntilChanged()
 
     init {
-        // Load media list initially
         viewModelScope.launch(IO) {
-            debouncedSearchText.collect { debouncedSearchText ->
-                // Reset and load new results when derived search text changes
-                resetPaginationState()
-                loadMediaList(
-                    _state.value.listState.page,
-                    _state.value.listState.perPage,
-                    debouncedSearchText.ifEmpty { null }
-                )
+            debouncedSearchText.collectLatest { debouncedText ->
+                if (hasLoadedInitialData) {
+                    resetPaginationState()
+                    loadMediaList(
+                        page = 1,
+                        perPage = _state.value.listState.perPage,
+                        search = debouncedText.ifEmpty { null },
+                        isAdult = _state.value.listState.isAdultChecked
+                    )
+                }
             }
         }
+
+        adultStateFlow
+            .filter { hasLoadedInitialData }
+            .onEach { isAdult ->
+                resetPaginationState()
+                loadMediaList(
+                    page = 1,
+                    perPage = _state.value.listState.perPage,
+                    search = _state.value.listState.searchText.let {
+                        if (it.length >= 3 || it.isEmpty()) it.ifEmpty { null } else null
+                    },
+                    isAdult = isAdult
+                )
+            }
+            .launchIn(viewModelScope)
     }
 
     fun onAction(action: MediaAction) {
@@ -84,28 +112,39 @@ class MediaViewModel @Inject constructor(
                 }
             }
 
+            is MediaAction.AdultCheckboxToggled -> {
+                _state.update {
+                    it.copy(listState = it.listState.copy(isAdultChecked = action.isChecked))
+                }
+            }
+
             is MediaAction.MediaClicked -> {
                 loadMediaDetails(action.mediaId)
             }
 
             is MediaAction.SearchSubmitted -> {
-
-                val currentState = state.value
-                if (currentState.listState.searchText.isNotEmpty()) {
+                val currentState = _state.value.listState
+                if (currentState.searchText.length >= 3 || currentState.searchText.isEmpty()) {
+                    resetPaginationState()
                     loadMediaList(
-                        currentState.listState.page,
-                        currentState.listState.perPage,
-                        currentState.listState.searchText.ifEmpty { null })
+                        page = 1,
+                        perPage = currentState.perPage,
+                        search = currentState.searchText.ifEmpty { null },
+                        isAdult = currentState.isAdultChecked
+                    )
                 }
             }
 
             MediaAction.LoadMoreItems -> {
-                val currentState = _state.value
-                if (currentState.listState.hasNextPage && !currentState.listState.isLoading) {
+                val currentState = _state.value.listState
+                if (currentState.hasNextPage && !currentState.isLoading) {
+                    val currentSearch = currentState.searchText.let { if (it.length >= 3 || it.isEmpty()) it.ifEmpty { null } else null }
                     loadMediaList(
-                        currentState.listState.page,
-                        currentState.listState.perPage,
-                        currentState.listState.searchText.ifEmpty { null })
+                        page = currentState.page,
+                        perPage = currentState.perPage,
+                        search = currentSearch,
+                        isAdult = currentState.isAdultChecked
+                    )
                 }
             }
 
@@ -121,28 +160,46 @@ class MediaViewModel @Inject constructor(
         }
     }
 
-    private fun loadMediaList(page: Int, perPage: Int, search: String?) {
-        _state.update { currentState ->
-            currentState.copy(listState = currentState.listState.copy(isLoading = true))
+    private fun loadMediaList(page: Int, perPage: Int, search: String?, isAdult: Boolean) {
+        val listState = _state.value.listState
+        val currentSearch = listState.searchText.let { if (it.length >= 3 || it.isEmpty()) it.ifEmpty { null } else null }
+        if (page == 1 && listState.items.isNotEmpty() && !listState.isLoading) {
+            val currentFilters = Pair(currentSearch, listState.isAdultChecked)
+            val newFilters = Pair(search, isAdult)
+            if (currentFilters == newFilters) {
+                return
+            }
         }
+
+        _state.update { currentState ->
+            currentState.copy(
+                listState = currentState.listState.copy(isLoading = true)
+            )
+        }
+
         viewModelScope.launch(IO) {
-            when (val result = getMediaListUseCase(page, perPage, search)) {
+            when (val result = getMediaListUseCase(page, perPage, search, isAdult)) {
                 is Result.Success -> {
                     val currentPageInfo = result.data.pageInfo
                     _state.update { currentState ->
-                        val updatedMediaList = (currentState.listState.items + result.data.items)
-                            .distinctBy { it.id }
+                        val newItems = if (page == 1) {
+                            result.data.items
+                        } else {
+                            (currentState.listState.items + result.data.items)
+                                .distinctBy { it.id }
+                        }
                         currentState.copy(
                             listState = currentState.listState.copy(
-                                items = updatedMediaList.toPersistentList(),
+                                items = newItems.toPersistentList(),
                                 isLoading = false,
                                 hasNextPage = currentPageInfo.hasNextPage,
-                                page = currentPageInfo.currentPage.plus(1)
+                                page = if (currentPageInfo.hasNextPage) currentPageInfo.currentPage.plus(1) else currentState.listState.page,
+                                searchText = search ?: "",
+                                isAdultChecked = isAdult
                             )
                         )
                     }
                 }
-
                 is Result.Error -> {
                     _state.update { currentState ->
                         currentState.copy(
@@ -153,10 +210,7 @@ class MediaViewModel @Inject constructor(
                         )
                     }
                 }
-
-                Result.Loading -> {
-                    //Loading is handled in Success and Error
-                }
+                Result.Loading -> { /* Handled by isLoading state */ }
             }
         }
     }
@@ -167,7 +221,9 @@ class MediaViewModel @Inject constructor(
                 listState = currentState.listState.copy(
                     page = 1,
                     hasNextPage = true,
-                    items = persistentListOf()
+                    items = persistentListOf(),
+                    isLoading = false,
+                    error = null
                 )
             )
         }

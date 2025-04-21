@@ -1,15 +1,15 @@
-query Media($page: Int, $perPage: Int, $search: String) {
+query Media($page: Int, $perPage: Int, $search: String, $isAdult: Boolean) {
     Page(page: $page, perPage: $perPage) {
         __typename
-        media(search: $search) {
+        media(search: $search, isAdult: $isAdult) {
             __typename
-            id
             title {
                 english
+                native
                 romaji
             }
             description
-
+            id
             coverImage {
                 medium
                 large

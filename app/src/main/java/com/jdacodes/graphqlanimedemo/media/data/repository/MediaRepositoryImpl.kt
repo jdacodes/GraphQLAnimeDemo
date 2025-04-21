@@ -22,14 +22,16 @@ class MediaRepositoryImpl @Inject constructor(
     override suspend fun getMediaList(
         page: Int,
         perPage: Int,
-        search: String?
+        search: String?,
+        isAdult: Boolean
     ): Result<MediaListResult> {
         return try {
             val response = apolloClient.query(
                 MediaQuery(
-                    Optional.present(page),
-                    Optional.present(perPage),
-                    Optional.present(search)
+                    page = Optional.present(page),
+                    perPage = Optional.present(perPage),
+                    search = Optional.present(search),
+                    isAdult = Optional.present(isAdult)
                 )
             ).execute()
 

@@ -1,5 +1,6 @@
 package com.jdacodes.graphqlanimedemo.navigation
 
+import androidx.annotation.StringRes 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -11,26 +12,40 @@ import kotlinx.serialization.Serializable
 sealed class Navigation {
 
     @Serializable
-    sealed class Home(val route: String) : Navigation() {
+    sealed class Home(val route: String, @StringRes val labelResId: Int) : Navigation() {
         @Serializable
-        data object MediaListDetail : Home(R.string.search.toString())
+        data object MediaListDetail : Home(
+            route = "media_list_detail", 
+            labelResId = R.string.search 
+        )
 
         @Serializable
-        data object Favorites : Home(R.string.favorites.toString())
+        data object Favorites : Home(
+            route = "favorites",
+            labelResId = R.string.favorites
+        )
 
         @Serializable
-        data object Dashboard : Home(R.string.dashboard.toString())
+        data object Dashboard : Home(
+            route = "dashboard",
+            labelResId = R.string.dashboard
+        )
     }
 
     @Serializable
-    sealed class Authorization(val route: String) : Navigation() {
+    sealed class Authorization(val route: String, @StringRes val labelResId: Int) : Navigation() {
         @Serializable
-        data object Login : Authorization(R.string.login.toString())
+        data object Login : Authorization(
+            route = "login",
+            labelResId = R.string.login
+        )
 
         @Serializable
-        data object Register : Authorization(R.string.register.toString())
+        data object Register : Authorization(
+            route = "register",
+            labelResId = R.string.register
+        )
     }
-
 }
 
 fun homeNavigationItems() = listOf(

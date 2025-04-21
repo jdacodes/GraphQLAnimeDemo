@@ -6,5 +6,5 @@ sealed interface MediaAction {
     data class SearchSubmitted(val newText: String) : MediaAction
     data object LoadMoreItems : MediaAction
     data class SetTrailerFullscreen(val isFullscreen: Boolean): MediaAction
-
+    data class AdultCheckboxToggled(val isChecked: Boolean) : MediaAction
 }

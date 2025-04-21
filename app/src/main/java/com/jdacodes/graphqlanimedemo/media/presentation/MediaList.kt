@@ -5,14 +5,17 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -22,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -81,7 +85,6 @@ fun MediaList(
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.padding(horizontal = 8.dp),
                 title = {
                     OutlinedTextField(
                         value = listState.searchText,
@@ -89,7 +92,7 @@ fun MediaList(
                         placeholder = { Text("Search anime...") },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 2.dp),
+                            .padding(vertical = 4.dp),
                         singleLine = true,
                         shape = MaterialTheme.shapes.medium,
                         leadingIcon = {
@@ -103,88 +106,106 @@ fun MediaList(
                         ),
                         keyboardActions = KeyboardActions(
                             onSearch = {
-                                // Handle search here
                                 keyboardController?.hide()
                                 onAction(MediaAction.SearchSubmitted(listState.searchText))
                             }
                         )
                     )
-                }
+                },
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
         },
-    ) { paddingValues ->
-        PaginatedLazyColumn(
-            modifier = Modifier.padding(paddingValues),
-            items = listState.items,
-            loadMoreItems = { onAction(MediaAction.LoadMoreItems) },
-            listState = listStateLazy,
-            isLoading = listState.isLoading,
-            onAction = onAction
-        )
+    ) { scaffoldPaddingValues -> 
+        Column(
+            modifier = Modifier
+                .padding(scaffoldPaddingValues)
+                .fillMaxSize()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End 
+            ) {
+                Checkbox(
+                    checked = listState.isAdultChecked, 
+                    onCheckedChange = { isChecked ->
+                        onAction(MediaAction.AdultCheckboxToggled(isChecked))
+                    }
+                )
+                Spacer(modifier = Modifier.width(4.dp)) 
+                Text(
+                    text = "Adult",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            PaginatedLazyColumn(
+                modifier = Modifier.weight(1f),
+                items = listState.items,
+                loadMoreItems = { onAction(MediaAction.LoadMoreItems) },
+                listState = listStateLazy,
+                isLoading = listState.isLoading,
+                onAction = onAction
+            )
+        }
     }
 }
-
 
 @Composable
 fun PaginatedLazyColumn(
     modifier: Modifier = Modifier,
-    items: PersistentList<MediaListItem>,  // Using PersistentList for efficient state management
-    loadMoreItems: () -> Unit,  // Function to load more items
-    listState: LazyListState,  // Track the scroll state of the LazyColumn
-    buffer: Int = 2,  // Buffer to load more items when we get near the end
-    isLoading: Boolean, // Track if items are being loaded
+    items: PersistentList<MediaListItem>,
+    loadMoreItems: () -> Unit,
+    listState: LazyListState,
+    buffer: Int = 2,
+    isLoading: Boolean,
     onAction: (MediaAction) -> Unit
-
 ) {
-    // Derived state to determine when to load more items
     val shouldLoadMore = remember {
         derivedStateOf {
-            // Get the total number of items in the list
             val totalItemsCount = listState.layoutInfo.totalItemsCount
-            // Get the index of the last visible item
             val lastVisibleItemIndex =
                 listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            // Check if we have scrolled near the end of the list and more items should be loaded
             lastVisibleItemIndex >= (totalItemsCount - buffer) && !isLoading
         }
     }
 
-// Launch a coroutine to load more items when shouldLoadMore becomes true
     LaunchedEffect(listState) {
         snapshotFlow { shouldLoadMore.value }
             .distinctUntilChanged()
-            .filter { it }  // Ensure that we load more items only when needed
+            .filter { it }
             .collect {
                 loadMoreItems()
             }
     }
-    // LazyColumn to display the list of items
+
     LazyColumn(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
-            .fillMaxSize()
-            .padding(16.dp)
-            .testTag(TestTags.PaginatedList),  // Add test tag to list
-        state = listState  // Pass the scroll state
+            .fillMaxWidth() 
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        state = listState
     ) {
-        // Render each item in the list using a unique key
         itemsIndexed(items, key = { _, item -> item.id }) { _, media ->
             MediaItem(
                 media = media,
-                onAction = onAction,  // Simplified click handler
-                modifier = Modifier.testTag("${TestTags.MediaListItem}_${media.id}")  // Add test tag to list item
+                onAction = onAction,
+                modifier = Modifier.testTag("${TestTags.MediaListItem}_${media.id}")
             )
         }
 
-//            // Check if we've reached the end of the list
-//            if (index == items.lastIndex && !isLoading) {
-//                loadMoreItems()
-//            }
-
-        // Show a loading indicator at the bottom when items are being loaded
-        if (isLoading) {
+        if (isLoading && items.isNotEmpty()) {
             item {
                 LoadingItem()
+            }
+        }
+        if (isLoading && items.isEmpty()) {
+            item {
+                Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
         }
     }

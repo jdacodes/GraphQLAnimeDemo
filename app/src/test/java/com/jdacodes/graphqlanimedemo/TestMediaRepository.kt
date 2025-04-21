@@ -85,7 +85,8 @@ class TestMediaRepository : MediaRepository {
     override suspend fun getMediaList(
         page: Int,
         perPage: Int,
-        search: String?
+        search: String?,
+        isAdult: Boolean
     ): Result<MediaListResult> {
         return mediaListResult
     }

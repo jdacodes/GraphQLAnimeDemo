@@ -13,7 +13,8 @@ data class MediaListState(
     val searchText: String = "",
     val hasNextPage: Boolean = true,
     val page: Int = 1,
-    val perPage: Int = 10
+    val perPage: Int = 10,
+    val isAdultChecked: Boolean = false
 )
 
 data class MediaDetailState(
