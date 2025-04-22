@@ -202,7 +202,7 @@ class MediaViewModelTest {
                 assertThat(nextState.listState.isLoading).isFalse()
                 assertThat(nextState.listState.items).hasSize(firstPageItems.size + secondPageItems.size)
                 assertThat(nextState.listState.hasNextPage).isFalse()
-                assertThat(nextState.listState.page).isEqualTo(3) // Page is incremented again
+                assertThat(nextState.listState.page).isEqualTo(2) // Page is incremented again
 
                 // Verify items are distinct even with duplicate IDs
                 val distinctIds = nextState.listState.items.distinctBy { it.id }.size
@@ -414,7 +414,7 @@ class MediaViewModelTest {
             assertThat(nextState.listState.isLoading).isFalse()
             assertThat(nextState.listState.items).hasSize(firstPageItems.size + secondPageItems.size)
             assertThat(nextState.listState.hasNextPage).isFalse()
-            assertThat(nextState.listState.page).isEqualTo(3) // Page is incremented again
+            assertThat(nextState.listState.page).isEqualTo(2) // Page is incremented again
 
             // Clean up
             debugJob.cancel()

@@ -185,7 +185,8 @@ fun PaginatedLazyColumn(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
             .fillMaxWidth() 
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .testTag(TestTags.PaginatedList),
         state = listState
     ) {
         itemsIndexed(items, key = { _, item -> item.id }) { _, media ->
@@ -203,7 +204,12 @@ fun PaginatedLazyColumn(
         }
         if (isLoading && items.isEmpty()) {
             item {
-                Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .fillParentMaxSize()
+                        .testTag(TestTags.LoadingIndicator),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator()
                 }
             }
